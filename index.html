@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The AOction House</title>
+    <link rel="stylesheet" href="/AH.css">
+</head>
+
+
+<body>
+
+<div class="header">
+    <h1>The AOction House</h1>
+    <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect Wallet</button>
+</div>
+
+<div class="container">
+    <div class="form-container">
+        <h2>List Assets For Auction</h2>
+        <div class="form-group">
+            <label for="assetDropdown">Select Asset</label>
+            <div id="assetDropdown" class="custom-dropdown">
+                <!-- Custom dropdown options will be populated here -->
+                <div class="selected" style="display: flex; align-items: center;">
+                    <span>Your Collection</span>
+                </div>
+                <div class="dropdown-options" style="display: none; border: 1px solid #ccc; position: absolute; z-index: 1000; background-color: #fff; max-height: 200px; overflow-y: auto;">
+                    <!-- Options will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="price">Initial Price (in wAR)</label>
+            <input type="number" id="price" placeholder="Enter the initial price in wAR" required>
+        </div>
+        <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" placeholder="Enter the quantity" required>
+        </div>
+        <div class="form-group">
+            <label for="durationDropdown">Select Auction Duration</label>
+            <select id="durationDropdown">
+                <option value="1">1 Day</option>
+                <option value="3">3 Days</option>
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+            </select>
+        </div>
+        <button class="button" id="listAssetButton">List Asset</button>
+    </div>
+
+<!-- Asset Selection Modal -->
+<div id="assetSelectionModal" class="modal asset-selection-modal">
+    <div class="modal-content">
+        <span class="close">&times;</span> <!-- Specific class for the close button -->
+        <h2>Select an Asset</h2>
+
+        <div class="asset-list" id="assetList">
+            <!-- Dynamically filled with assets -->
+        </div>
+
+        <div class="pagination-controls">
+            <button id="prevPage">Previous</button>
+            <button id="nextPage">Next</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Live Auctions Section -->
+<div class="live-auctions">
+    <h2>Live Auctions</h2>
+    <div id="auctionGrid" class="auction-grid">
+        <!-- Auction thumbnails will be dynamically generated here -->
+    </div>
+</div>
+
+<!-- Auction details modal (popup) -->
+<div id="auctionDetailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="auctionName">Auction Name</h2>
+        <img id="auctionImage" src="" alt="Auction Image" class="auction-image">
+        <p><strong>Starting Price (wAR):</strong> <span id="minBid"></span></p>
+        <p><strong>Current Bid (wAR):</strong> <span id="currentBid"></span></p>
+        <p><strong>Seller:</strong> <span id="seller"></span></p>
+        <p><strong>Expiry:</strong> <span id="expiry"></span></p>
+
+    <!-- Bid Section -->
+    <div class="bid-section">
+        <label for="bidAmount">Place your bid (wAR):</label>
+        <input type="number" class="bidAmountInput" step="0.000001" min="0.000001" placeholder="Enter bid amount (min 0.000001)">
+        <button class="placeBidButton button">Place Bid</button>
+    </div>
+    
+    
+
+
+        
+        <!-- Cancel Auction Button, hidden by default -->
+        <button id="cancelAuctionButton" class="button" style="display: none;">Cancel Auction</button>
+    </div>
+</div>
+
+
+</div>
+
+<script type="module" src="AH.js"></script>
+
+<script>
+    function closeAuctionDetails() {
+        const modal = document.getElementById("auctionDetailsModal");
+        modal.style.display = "none";
+    }
+</script>
+
+</body>
+</html>
+
+
