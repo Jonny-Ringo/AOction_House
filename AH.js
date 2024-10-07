@@ -153,6 +153,7 @@ async function displayAuctions(auctions) {
             let minBid = auctionDetails.MinPrice || 0;
             minBid = (minBid / 1e12).toFixed(6);  
             const expiry = auctionDetails.Expiry || "Unknown";
+            const modalQuantity = auctionDetails.Quantity || 1; // Extract Quantity
 
             // Get the current highest bid (if any) from the Bids tag
             let highestBid = "No Bids"; 
@@ -176,19 +177,21 @@ async function displayAuctions(auctions) {
                 <img src="${auctionImageURL}" alt="${auctionName}" class="thumbnail-image" style="width: 100%; height: auto; object-fit: cover; border-radius: 5px;">
                 <p><strong>${auctionName}</strong></p>
                 <p>Current Bid: ${highestBid} wAR</p>
+                <p>Quantity: ${modalQuantity}</p>  <!-- Display the quantity here -->
                 <p>Seller: ${truncatedSeller}</p>
                 <p>Expiry: ${new Date(parseInt(expiry)).toLocaleString()}</p>
             `;
 
             // Set up onclick event to open auction details
-            auctionThumbnail.onclick = () => openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionKey, bidsDataTag, connectedWallet);
+            auctionThumbnail.onclick = () => openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionKey, bidsDataTag, connectedWallet, modalQuantity);
             auctionGrid.appendChild(auctionThumbnail);
         }
     }
 }
 
+
 // Open auction details modal
-async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionId, bidsDataTag, connectedWallet) {
+async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionId, bidsDataTag, connectedWallet, modalQuantity) {
     const modal = document.getElementById("auctionDetailsModal");
 
     // Set auction details in the modal
@@ -198,6 +201,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     document.getElementById("currentBid").innerText = highestBid;
     document.getElementById("seller").innerText = seller;
     document.getElementById("expiry").innerText = new Date(parseInt(expiry)).toLocaleString();
+    document.getElementById("modalQuantity").innerText = modalQuantity;  // Display the quantity in the modal
 
     // Show the modal
     modal.style.display = "block";
