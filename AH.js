@@ -662,7 +662,7 @@ async function listAsset() {
     }
 }
 
-// Function to poll the results for Transfer-Success
+// Function to poll the results for Transfer-Received
 async function pollForTransferSuccess(profileId) {
     const url = `https://cu.ao-testnet.xyz/results/${profileId}?sort=DESC`;
 
@@ -675,18 +675,34 @@ async function pollForTransferSuccess(profileId) {
             const response = await fetch(url);
             const result = await response.json();
 
-            // Check if Transfer-Success message is in the result
-            const transferSuccess = result.edges.find(edge => {
-                // Ensure that the edge has Messages and that Messages array is not empty
-                if (edge.node.Messages && edge.node.Messages.length > 0) {
-                    const messageTags = edge.node.Messages[0].Tags;
-                    return messageTags.some(tag => tag.name === "Action" && tag.value === "Transfer-Success");
+            console.log("Polling result:", result);
+
+            // Check if Transfer-Received message is in the result
+            const transferReceived = result.edges.find(edge => {
+                const output = edge.node.Output;
+                if (output && output.data) {
+                    // Log the raw output data to inspect the exact content
+                    console.log("Raw Output Data:", output.data);
+
+                    // Remove any ANSI escape codes from the output data
+                    const cleanedData = removeAnsiCodes(output.data);
+
+                    // Log the cleaned data after removing ANSI codes
+                    console.log("Cleaned Output Data:", cleanedData);
+
+                    // Check if the cleaned output contains the 'Transfer Received' action
+                    return cleanedData.includes("Transfer Received");
                 }
                 return false;
             });
 
-            if (transferSuccess) {
-                console.log("Transfer-Success message found:", transferSuccess);
+            if (transferReceived) {
+                console.log("Transfer-Received message found:", transferReceived);
+
+                // Display full message content using a toast
+                const messageContent = transferReceived.node.Output.data;
+                showToast(`Full message: ${removeAnsiCodes(messageContent)}`);
+
                 successFound = true;
                 return true;  // Success
             }
@@ -696,13 +712,17 @@ async function pollForTransferSuccess(profileId) {
             attempts++;
         }
 
-        return false;  // Failed to find Transfer-Success message
+        return false;  // Failed to find Transfer-Received message
     } catch (error) {
-        console.error("Error polling Transfer-Success:", error);
+        console.error("Error polling Transfer-Received:", error);
         return false;
     }
 }
 
+// Function to remove ANSI escape codes from a string
+function removeAnsiCodes(str) {
+    return str.replace(/\u001b\[.*?m/g, "");
+}
 
 
 // Show toast notification

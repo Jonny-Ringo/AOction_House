@@ -76,7 +76,7 @@ Handlers.add(
         print("NFT transferred from " .. sender .. " to auction house. Asset ID: " .. assetId .. ", Quantity: " .. m.Quantity)
 
         -- Send a confirmation message to the sender
-        Send({Target = sender, Data = "NFT received for auction: " .. assetId})
+        Send({Target = sender, Action = "Transfer Received", Data = "NFT: " .. assetId})
     end
 )
 
