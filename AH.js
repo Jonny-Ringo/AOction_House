@@ -48,6 +48,12 @@ async function connectWallet() {
 }
 
 
+let auctionPage = 1;  // Track the current auction page
+const auctionsPerPage = 15;  // Limit auctions per page
+let totalAuctionPages = 1;  // Total number of auction pages will be calculated based on the total auctions
+let allLiveAuctions = [];  // Store all live auctions globally for pagination
+
+// Function to fetch live auctions
 async function fetchLiveAuctions() {
     try {
         console.log("Fetching live auctions...");
@@ -67,7 +73,26 @@ async function fetchLiveAuctions() {
 
         // Check if we have auction messages
         if (auctionResponse && auctionResponse.Messages && auctionResponse.Messages.length > 0) {
-            displayAuctions(auctionResponse.Messages);
+            allLiveAuctions = [];  // Clear previous auctions list
+
+            // Extract auctions from all messages and push them into the allLiveAuctions array
+            for (const message of auctionResponse.Messages) {
+                const auctionDataTag = message.Tags.find(tag => tag.name === "Auctions");
+                if (auctionDataTag) {
+                    const auctionData = JSON.parse(auctionDataTag.value);
+                    // Flatten all auction items into allLiveAuctions
+                    for (const auctionId in auctionData) {
+                        allLiveAuctions.push({
+                            auctionId,
+                            ...auctionData[auctionId]  // Spread the auction details into the object
+                        });
+                    }
+                }
+            }
+
+            totalAuctionPages = Math.ceil(allLiveAuctions.length / auctionsPerPage);  // Calculate total auction pages
+            console.log(`Total live auctions: ${allLiveAuctions.length}, Total pages: ${totalAuctionPages}`);
+            displayAuctions(auctionPage);  // Display auctions for the current page
         } else {
             console.error("No live auctions available.");
             showToast("No live auctions found.");
@@ -77,45 +102,23 @@ async function fetchLiveAuctions() {
     }
 }
 
-// Function to dryrun and fetch auction name and image
-async function getAuctionDetails(auctionId) {
-    try {
-        const signer = createDataItemSigner(window.arweaveWallet);
-
-        const auctionDetailsResponse = await dryrun({
-            process: auctionId,
-            tags: [
-                { name: "Action", value: "Info" }
-            ],
-            signer: signer
-        });
-
-        console.log(`Details for auction ${auctionId}:`, auctionDetailsResponse);
-
-        if (auctionDetailsResponse && auctionDetailsResponse.Messages && auctionDetailsResponse.Messages[0]) {
-            const auctionData = JSON.parse(auctionDetailsResponse.Messages[0].Data);
-            return {
-                name: auctionData.Name || auctionId, // Default to auction ID if no name is found
-                image: auctionData.Image || "https://via.placeholder.com/150"  // Default image if none is found
-            };
-        } else {
-            return {
-                name: auctionId,  // Fallback to auction ID
-                image: "https://via.placeholder.com/150"  // Fallback to placeholder image
-            };
-        }
-    } catch (error) {
-        console.error(`Error fetching auction details for ${auctionId}:`, error);
-        return {
-            name: auctionId,
-            image: "https://via.placeholder.com/150"
-        };
-    }
-}
-
-async function displayAuctions(auctions) {
+// Function to display auctions with pagination
+async function displayAuctions(page) {
     const auctionGrid = document.getElementById('auctionGrid');
+    const paginationControls = document.getElementById('paginationControls'); // Add pagination controls container
     auctionGrid.innerHTML = '';  // Clear previous content
+
+    if (!allLiveAuctions || allLiveAuctions.length === 0) {
+        auctionGrid.innerHTML = '<p>No auctions available</p>';
+        return;
+    }
+
+    // Calculate the starting and ending index for the current page
+    const startIndex = (page - 1) * auctionsPerPage;
+    const endIndex = Math.min(startIndex + auctionsPerPage, allLiveAuctions.length);
+    const auctionsToDisplay = allLiveAuctions.slice(startIndex, endIndex);
+
+    console.log(`Displaying auctions for page ${page}:`, auctionsToDisplay);
 
     // Ensure grid layout for the auction grid
     auctionGrid.style.display = 'grid';  
@@ -129,65 +132,108 @@ async function displayAuctions(auctions) {
 
     const connectedWallet = await window.arweaveWallet.getActiveAddress();  // Get the connected wallet address only after "Connect Wallet" is clicked
 
-    for (const auction of auctions) {
-        const auctionDataTag = auction.Tags.find(tag => tag.name === "Auctions");
-        const bidsDataTag = auction.Tags.find(tag => tag.name === "Bids");
+    for (const auction of auctionsToDisplay) {
+        const assetId = auction.AssetID;  // Use AssetID for fetching details
 
-        if (!auctionDataTag) {
-            console.error("No auction data found in message.");
-            continue;
+        // Get auction details using both AuctionID and AssetID
+        const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, assetId);
+
+        // Extract auction details
+        const seller = auction.Seller || "Unknown";
+        const truncatedSeller = truncateAddress(seller); 
+        let minBid = auction.MinPrice || 0;
+        minBid = (minBid / 1e12).toFixed(6);  
+        const expiry = auction.Expiry || "Unknown";
+        const modalQuantity = auction.Quantity || 1; // Extract Quantity
+
+        const auctionThumbnail = document.createElement('div');
+        auctionThumbnail.classList.add('auction-thumbnail');
+        auctionThumbnail.style.border = '1px solid #ccc'; 
+        auctionThumbnail.style.padding = '10px';  
+        auctionThumbnail.style.borderRadius = '8px';  
+
+        auctionThumbnail.innerHTML = `
+            <img src="${auctionImage}" alt="${auctionName}" class="thumbnail-image" style="width: 100%; height: auto; object-fit: cover; border-radius: 5px;">
+            <p><strong>${auctionName}</strong></p>
+            <p>Current Bid: No Bids</p>
+            <p>Quantity: ${modalQuantity}</p>
+            <p>Seller: ${truncatedSeller}</p>
+            <p>Expiry: ${new Date(parseInt(expiry)).toLocaleString()}</p>
+        `;
+
+        // Set up onclick event to open auction details
+        auctionThumbnail.onclick = () => openAuctionDetails(auctionName, auctionImage, minBid, "No Bids", seller, expiry, auction.auctionId, null, connectedWallet, modalQuantity);
+        auctionGrid.appendChild(auctionThumbnail);
+    }
+
+    // ** Set up pagination controls **
+    paginationControls.innerHTML = `
+        <button id="prevAuctionPage" ${auctionPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${auctionPage} of ${totalAuctionPages}</span>
+        <button id="nextAuctionPage" ${auctionPage === totalAuctionPages ? 'disabled' : ''}>Next</button>
+    `;
+
+    // Add event listeners for pagination buttons
+    document.getElementById('prevAuctionPage').addEventListener('click', () => {
+        if (auctionPage > 1) {
+            auctionPage--;
+            displayAuctions(auctionPage);
         }
+    });
 
-        // Parse the JSON string in the Auctions tag
-        const auctionData = JSON.parse(auctionDataTag.value);
-
-        // Loop through all auction keys in the auctionData
-        for (const auctionKey in auctionData) {
-            const auctionDetails = auctionData[auctionKey]; 
-            const assetId = auctionDetails.AssetID;
-            const { name: auctionName } = await getAuctionDetails(assetId);
-
-            // Extract auction details
-            const seller = auctionDetails.Seller || "Unknown";
-            const truncatedSeller = truncateAddress(seller); 
-            let minBid = auctionDetails.MinPrice || 0;
-            minBid = (minBid / 1e12).toFixed(6);  
-            const expiry = auctionDetails.Expiry || "Unknown";
-            const modalQuantity = auctionDetails.Quantity || 1; // Extract Quantity
-
-            // Get the current highest bid (if any) from the Bids tag
-            let highestBid = "No Bids"; 
-            if (bidsDataTag) {
-                const bidsData = JSON.parse(bidsDataTag.value)[auctionKey] || [];
-                if (bidsData.length > 0) {
-                    const highestBidData = bidsData.reduce((max, bid) => (bid.Amount > max.Amount ? bid : max), bidsData[0]);
-                    highestBid = (highestBidData.Amount / 1e12).toFixed(6); 
-                }
-            }
-
-            const auctionImageURL = `https://arweave.net/${assetId}`;
-
-            const auctionThumbnail = document.createElement('div');
-            auctionThumbnail.classList.add('auction-thumbnail');
-            auctionThumbnail.style.border = '1px solid #ccc'; 
-            auctionThumbnail.style.padding = '10px';  
-            auctionThumbnail.style.borderRadius = '8px';  
-
-            auctionThumbnail.innerHTML = `
-                <img src="${auctionImageURL}" alt="${auctionName}" class="thumbnail-image" style="width: 100%; height: auto; object-fit: cover; border-radius: 5px;">
-                <p><strong>${auctionName}</strong></p>
-                <p>Current Bid: ${highestBid} wAR</p>
-                <p>Quantity: ${modalQuantity}</p>  <!-- Display the quantity here -->
-                <p>Seller: ${truncatedSeller}</p>
-                <p>Expiry: ${new Date(parseInt(expiry)).toLocaleString()}</p>
-            `;
-
-            // Set up onclick event to open auction details
-            auctionThumbnail.onclick = () => openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionKey, bidsDataTag, connectedWallet, modalQuantity);
-            auctionGrid.appendChild(auctionThumbnail);
+    document.getElementById('nextAuctionPage').addEventListener('click', () => {
+        if (auctionPage < totalAuctionPages) {
+            auctionPage++;
+            displayAuctions(auctionPage);
         }
+    });
+}
+
+
+// Function to fetch auction name and image using AssetID and log AuctionID
+// Function to dryrun and fetch auction name (but use AssetID directly for the image URL)
+async function getAuctionDetails(auctionId, assetId) {
+    try {
+        const signer = createDataItemSigner(window.arweaveWallet);
+
+        const auctionDetailsResponse = await dryrun({
+            process: assetId, // Use AssetID to fetch auction details
+            tags: [
+                { name: "Action", value: "Info" }
+            ],
+            signer: signer
+        });
+
+        console.log(`Details for asset ${assetId}:`, auctionDetailsResponse);
+
+        if (auctionDetailsResponse && auctionDetailsResponse.Messages && auctionDetailsResponse.Messages[0]) {
+            const auctionData = JSON.parse(auctionDetailsResponse.Messages[0].Data);
+            // Log both AssetID and AuctionID for tracking purposes
+            console.log(`AuctionID: ${auctionId}, AssetID: ${assetId}`);
+
+            return {
+                auctionId,  // Return the AuctionID for tracking
+                name: auctionData.Name || assetId,  // Default to asset ID if no name is found
+                image: `https://arweave.net/${assetId}`  // Use AssetID for the image URL directly
+            };
+        } else {
+            return {
+                auctionId,  // Return the AuctionID
+                name: assetId,  // Default to asset ID if no name is found
+                image: `https://arweave.net/${assetId}`  // Use AssetID for the image URL directly
+            };
+        }
+    } catch (error) {
+        console.error(`Error fetching auction details for asset ${assetId}:`, error);
+        return {
+            auctionId,  // Return the AuctionID for tracking
+            name: assetId,
+            image: `https://arweave.net/${assetId}`  // Use AssetID for the image URL as fallback
+        };
     }
 }
+
+
 
 
 // Open auction details modal
