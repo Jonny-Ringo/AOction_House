@@ -153,12 +153,13 @@ async function displayAuctions(page) {
         auctionThumbnail.style.borderRadius = '8px';  
 
         auctionThumbnail.innerHTML = `
-            <img src="${auctionImage}" alt="${auctionName}" class="thumbnail-image" style="width: 100%; height: auto; object-fit: cover; border-radius: 5px;">
-            <p><strong>${auctionName}</strong></p>
+            <img src="${auctionImage}" alt="${auctionName}" class="thumbnail-image">
+            <h3>${auctionName}</h3>
             <p>Current Bid: No Bids</p>
             <p>Quantity: ${modalQuantity}</p>
             <p>Seller: ${truncatedSeller}</p>
-            <p>Expiry: ${new Date(parseInt(expiry)).toLocaleString()}</p>
+            <p>Expiry: ${new Date(parseInt(expiry)).toLocaleDateString()} ${new Date(parseInt(expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+
         `;
 
         // Set up onclick event to open auction details
@@ -246,7 +247,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     document.getElementById("minBid").innerText = minBid;
     document.getElementById("currentBid").innerText = highestBid;
     document.getElementById("seller").innerText = seller;
-    document.getElementById("expiry").innerText = new Date(parseInt(expiry)).toLocaleString();
+    document.getElementById("expiry").innerText = new Date(parseInt(expiry)).toLocaleDateString() + ' ' + new Date(parseInt(expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     document.getElementById("modalQuantity").innerText = modalQuantity;  // Display the quantity in the modal
 
     // Show the modal

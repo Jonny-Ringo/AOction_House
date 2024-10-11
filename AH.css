@@ -237,17 +237,17 @@ body, html {
 .live-auctions {
     margin-top: 50px;
     text-align: center;
-    width: 100%; /* Ensure live-auctions use full width */
+    width: 100%;
 }
 
 .auction-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Maintain card sizes */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
     justify-items: center;
     padding: 20px;
-    width: 100%; /* Ensure full width for the grid */
-    max-width: 100%; /* Remove width restrictions */
+    width: 100%;
+    max-width: 100%;
 }
 
 /* Auction thumbnail styling */
@@ -257,21 +257,35 @@ body, html {
     border-radius: 8px;
     padding: 15px;
     width: 200px;
-    text-align: center;
+    height: 350px; /* Static height for the thumbnail */
     transition: transform 0.3s, box-shadow 0.3s;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
+/* Thumbnail image with enforced size */
 .auction-thumbnail img {
     width: 100%;
-    height: auto;
+    height: 200px; /* Static height */
+    object-fit: contain; /* Scale image to fit the box without overflowing */
     border-radius: 8px;
 }
 
+/* Thumbnail text styling */
+.auction-thumbnail h3 {
+    margin: 2px 0;
+    font-size: 20px;
+    color: #333;
+    text-align: center;
+}
+
 .auction-thumbnail p {
-    margin: 10px 0;
+    margin: 2px 4px;
     font-size: 14px;
     color: #333;
+    text-align: left;
 }
 
 /* Add hover effect on auction thumbnails */
@@ -283,43 +297,41 @@ body, html {
 /* Button styling inside the modal */
 .bid-section {
     margin-top: 15px;
-    text-align: center; /* Center the bid section */
+    text-align: center;
 }
 
 #placeBidButton {
     margin-top: 10px;
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #28a745;  /* Green for placing bids */
+    background-color: #28a745;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 #placeBidButton:hover {
-    background-color: #218838;  /* Darker green on hover */
+    background-color: #218838;
 }
 
-/* Styling for the Cancel Auction button */
 #cancelAuctionButton {
     margin-top: 15px;
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #dc3545;  /* Red for cancellation */
+    background-color: #dc3545;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 #cancelAuctionButton:hover {
-    background-color: #c82333;  /* Darker red on hover */
+    background-color: #c82333;
 }
 
 #cancelAuctionButton:disabled {
-    background-color: #aaa;  /* Gray for disabled state */
+    background-color: #aaa;
     cursor: not-allowed;
 }
-
 
 /* Modal Popup */
 .modal {
@@ -341,9 +353,12 @@ body, html {
     border: 1px solid #888;
     width: 80%;
     max-width: 600px;
+    max-height: 700px; /* Fixed height for modal */
     text-align: center;
+    overflow: auto;
 }
 
+/* Modal close button */
 .modal .close {
     color: #aaa;
     float: right;
@@ -361,8 +376,8 @@ body, html {
 /* Ensure the image fits neatly inside the modal */
 .modal img.auction-image {
     width: 100%;
-    max-width: 100%;
-    height: auto;
+    height: 300px; /* Fixed height for the image */
+    object-fit: contain; /* Ensure the image scales and fits inside the container */
     border-radius: 8px;
     margin-bottom: 15px;
 }
