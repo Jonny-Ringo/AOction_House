@@ -312,7 +312,8 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                     const successMessage = resultData.Output?.data || "Auction canceled successfully.";
                     showToast(successMessage);
                     await fetchLiveAuctions();  // Refresh the auction list
-                    await closeAuctionDetails();  // Close the modal
+                    await closeAuctionDetails();
+                    await resetAssetSelection();  // Close the modal
                 } catch (error) {
                     console.error("Error canceling auction:", error);
                     showToast("Error: Failed to cancel the auction.");
@@ -676,7 +677,7 @@ async function listAsset() {
     const durationInput = document.getElementById("durationDropdown").value;
     const quantityInput = document.getElementById("quantity").value || 1;
 
-    // Check if we have the necessary data, including the profile ID
+    // Ensure all required fields are filled
     if (!selectedAssetId || !priceInput || !durationInput || !profileId) {
         showToast("Please select an asset, enter price, choose duration, and ensure your profile ID is set.");
         return;
@@ -692,11 +693,11 @@ async function listAsset() {
 
         // Send the Transfer command
         const transferResponse = await message({
-            process: profileId,  // Send to the BazAR profile process ID
+            process: profileId,
             tags: [
                 { name: "Action", value: "Transfer" },
-                { name: "Target", value: selectedAssetId },  // Set the selected asset ID as the target
-                { name: "Recipient", value: auctionProcessId },  // Auction process ID
+                { name: "Target", value: selectedAssetId },  
+                { name: "Recipient", value: auctionProcessId },  
                 { name: "Quantity", value: quantityInput.toString() }
             ],
             signer: signer
@@ -704,7 +705,6 @@ async function listAsset() {
 
         console.log("Transfer command sent. Message ID:", transferResponse);
 
-        // Poll for the Transfer-Success message by fetching the results from the profile ID
         console.log("Waiting for Transfer-Success message...");
 
         const transferSuccess = await pollForTransferSuccess(profileId);
@@ -714,29 +714,32 @@ async function listAsset() {
 
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Create auction if the transfer was successful
             const auctionResponse = await message({
                 process: auctionProcessId,
                 tags: [
                     { name: "Action", value: "Create-Auction" },
-                    { name: "AuctionId", value: selectedAssetId },  // Use the NFT ID as the Auction ID
-                    { name: "MinPrice", value: minPrice },  // Minimum price in wAR
-                    { name: "Expiry", value: expiryTimestamp },  // Auction expiry timestamp
-                    { name: "Quantity", value: quantityInput.toString() },  // Auction quantity
-                    { name: "SellerProfileID", value: profileId }  // Include Seller's BazAR Profile ID
+                    { name: "AuctionId", value: selectedAssetId },  
+                    { name: "MinPrice", value: minPrice },  
+                    { name: "Expiry", value: expiryTimestamp },  
+                    { name: "Quantity", value: quantityInput.toString() },  
+                    { name: "SellerProfileID", value: profileId }  
                 ],
                 signer: signer
             });
 
             if (auctionResponse) {
                 const auctionResultData = await result({
-                    message: auctionResponse,  // Use the auction response message ID
-                    process: auctionProcessId  // Auction process ID
+                    message: auctionResponse,
+                    process: auctionProcessId
                 });
 
                 const successMessage = auctionResultData.Output?.data || "Auction created successfully.";
                 showToast(successMessage);
-                await fetchLiveAuctions();  // Refresh auctions
+
+                // **Deselect all assets and reload owned assets**
+                await resetAssetSelection(); // Reset the asset selection
+                await fetchOwnedAssets(); // Refresh the asset list
+                await fetchLiveAuctions(); // Refresh live auctions
             } else {
                 showToast("Error: Auction creation failed.");
             }
@@ -748,6 +751,32 @@ async function listAsset() {
         showToast("Error listing asset. Please try again.");
     }
 }
+
+async function resetAssetSelection() {
+    // Clear the selected asset ID
+    selectedAssetId = null;
+
+    // Reset the asset dropdown selection display
+    const assetDropdownSelected = document.querySelector("#assetDropdown .selected");
+    if (assetDropdownSelected) {
+        assetDropdownSelected.innerHTML = "<span>Select an asset</span>";
+    }
+
+    // Reset the quantity header
+    const quantityHeader = document.getElementById("quantityHeader");
+    if (quantityHeader) {
+        quantityHeader.innerText = "Quantity (# Available: -)";
+    }
+
+    // Clear form input fields
+    document.getElementById("price").value = "";       // Clear price input
+    document.getElementById("quantity").value = "";    // Clear quantity input
+    document.getElementById("durationDropdown").selectedIndex = 0; // Reset duration dropdown to default
+
+    console.log("Asset selection and form fields reset.");
+}
+
+
 
 // Function to poll the results for Transfer-Received
 async function pollForTransferSuccess(profileId) {
