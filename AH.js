@@ -225,16 +225,6 @@ async function getAuctionDetails(auctionId, assetId) {
             const auctionData = JSON.parse(auctionDetailsResponse.Messages[0].Data);
             console.log(`AuctionID: ${auctionId}, AssetID: ${assetId}`);
 
-            // Extract balances and match with the profileId
-            const balances = auctionData.Balances || {};
-            const availableQuantity = balances[profileId] || 0;
-
-            console.log(`Available Quantity: ${availableQuantity}`);
-
-            // Update the quantity header in the UI
-            document.getElementById("quantityHeader").innerText = 
-                `Quantity (# Available: ${availableQuantity})`;
-
             return {
                 auctionId,  // Return the AuctionID for tracking
                 name: auctionData.Name || assetId,  // Default to asset ID if no name is found
@@ -552,6 +542,39 @@ async function fetchOwnedAssets() {
     }
 }
 
+async function fetchBalanceForAsset(assetId) {
+    try {
+        console.log(`Fetching balance for asset: ${assetId}`);
+
+        const signer = createDataItemSigner(window.arweaveWallet);
+
+        const balanceResponse = await dryrun({
+            process: assetId,
+            tags: [{ name: "Action", value: "Info" }],
+            signer: signer
+        });
+
+        console.log(`Balance response for asset ${assetId}:`, balanceResponse);
+
+        if (balanceResponse && balanceResponse.Messages && balanceResponse.Messages[0]) {
+            const assetData = JSON.parse(balanceResponse.Messages[0].Data);
+            const balances = assetData.Balances || {};
+            const availableQuantity = balances[profileId] || 0;
+
+            console.log(`Available Quantity for ${assetId}: ${availableQuantity}`);
+
+            // Update quantity header
+            document.getElementById("quantityHeader").innerText =
+                `Quantity (# Available: ${availableQuantity})`;
+        } else {
+            console.warn(`No balance data found for asset: ${assetId}`);
+        }
+    } catch (error) {
+        console.error(`Error fetching balance for asset ${assetId}:`, error);
+    }
+}
+
+
 // Load a specific page of assets
 async function loadAssetsPage(page) {
     const startIndex = (page - 1) * assetsPerPage;
@@ -599,6 +622,7 @@ async function loadAssetsPage(page) {
 }
 
 // Populate the asset list in the modal
+// Populate the asset list in the modal
 function populateAssetList(assets) {
     const assetList = document.getElementById("assetList");
     assetList.innerHTML = ""; // Clear previous content
@@ -612,7 +636,7 @@ function populateAssetList(assets) {
             <span>${asset.title}</span>
         `;
 
-        option.onclick = () => {
+        option.onclick = async () => {
             document.querySelector("#assetDropdown .selected").innerHTML = `
                 <img src="${asset.thumbnail}" alt="Thumbnail" style="width: 50px; height: 50px;">
                 <span>${asset.title}</span>
@@ -620,22 +644,14 @@ function populateAssetList(assets) {
             selectedAssetId = asset.id;
             closeModalById("assetSelectionModal");
 
-            // Trigger fetching the auction details and update the available quantity
-            getAuctionDetails('your_auction_id', selectedAssetId);  // Replace with appropriate auction ID
+            // **Fetch balance only on asset selection**
+            await fetchBalanceForAsset(selectedAssetId);
         };
 
         assetList.appendChild(option);
     });
-
-    // Add event listener for asset selection (dropdown)
-    document.getElementById('assetDropdown').addEventListener('change', async (event) => {
-        const selectedAssetId = event.target.value;
-        const auctionId = `your_auction_id`; // Replace with the actual auction ID if needed
-
-        // Fetch the details and update the available quantity
-        await getAuctionDetails(auctionId, selectedAssetId);
-    });
 }
+
 
 // Handle page navigation
 document.getElementById("prevPage").addEventListener("click", () => {
@@ -677,27 +693,22 @@ async function listAsset() {
     const durationInput = document.getElementById("durationDropdown").value;
     const quantityInput = document.getElementById("quantity").value || 1;
 
-    // Ensure all required fields are filled
     if (!selectedAssetId || !priceInput || !durationInput || !profileId) {
         showToast("Please select an asset, enter price, choose duration, and ensure your profile ID is set.");
         return;
     }
 
-    const minPrice = (priceInput * 1e12).toString(); // Convert price to wAR
+    const minPrice = (priceInput * 1e12).toString();
     const expiryTimestamp = calculateExpiryTimestamp(durationInput);
 
     try {
-        console.log("Sending Transfer command for NFT...");
-
         const signer = createDataItemSigner(window.arweaveWallet);
-
-        // Send the Transfer command
         const transferResponse = await message({
             process: profileId,
             tags: [
                 { name: "Action", value: "Transfer" },
-                { name: "Target", value: selectedAssetId },  
-                { name: "Recipient", value: auctionProcessId },  
+                { name: "Target", value: selectedAssetId },
+                { name: "Recipient", value: auctionProcessId },
                 { name: "Quantity", value: quantityInput.toString() }
             ],
             signer: signer
@@ -705,44 +716,35 @@ async function listAsset() {
 
         console.log("Transfer command sent. Message ID:", transferResponse);
 
-        console.log("Waiting for Transfer-Success message...");
-
         const transferSuccess = await pollForTransferSuccess(profileId);
-        
+
         if (transferSuccess) {
             console.log("Transfer-Success received. Proceeding to create auction...");
-
-            await new Promise(resolve => setTimeout(resolve, 2000));
 
             const auctionResponse = await message({
                 process: auctionProcessId,
                 tags: [
                     { name: "Action", value: "Create-Auction" },
-                    { name: "AuctionId", value: selectedAssetId },  
-                    { name: "MinPrice", value: minPrice },  
-                    { name: "Expiry", value: expiryTimestamp },  
-                    { name: "Quantity", value: quantityInput.toString() },  
-                    { name: "SellerProfileID", value: profileId }  
+                    { name: "AuctionId", value: selectedAssetId },
+                    { name: "MinPrice", value: minPrice },
+                    { name: "Expiry", value: expiryTimestamp },
+                    { name: "Quantity", value: quantityInput.toString() },
+                    { name: "SellerProfileID", value: profileId }
                 ],
                 signer: signer
             });
 
-            if (auctionResponse) {
-                const auctionResultData = await result({
-                    message: auctionResponse,
-                    process: auctionProcessId
-                });
+            const auctionResultData = await result({
+                message: auctionResponse,
+                process: auctionProcessId
+            });
 
-                const successMessage = auctionResultData.Output?.data || "Auction created successfully.";
-                showToast(successMessage);
+            const successMessage = auctionResultData.Output?.data || "Auction created successfully.";
+            showToast(successMessage);
 
-                // **Deselect all assets and reload owned assets**
-                await resetAssetSelection(); // Reset the asset selection
-                await fetchOwnedAssets(); // Refresh the asset list
-                await fetchLiveAuctions(); // Refresh live auctions
-            } else {
-                showToast("Error: Auction creation failed.");
-            }
+            await resetAssetSelection();
+            await fetchOwnedAssets();
+            await fetchLiveAuctions();
         } else {
             showToast("Error: Transfer-Success message not received.");
         }
@@ -751,6 +753,7 @@ async function listAsset() {
         showToast("Error listing asset. Please try again.");
     }
 }
+
 
 async function resetAssetSelection() {
     // Clear the selected asset ID
