@@ -718,6 +718,8 @@ async function listAsset() {
 
         const transferSuccess = await pollForTransferSuccess(profileId);
 
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         if (transferSuccess) {
             console.log("Transfer-Success received. Proceeding to create auction...");
 
