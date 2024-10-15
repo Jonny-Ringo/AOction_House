@@ -19,10 +19,9 @@
     <div class="form-container">
         <h2>List Assets For Auction</h2>
         <div class="form-group">
-            <label for="assetDropdown">Select Asset</label>
             <div id="assetDropdown" class="custom-dropdown">
                 <!-- Custom dropdown options will be populated here -->
-                <div class="selected" style="display: flex; align-items: center;">
+                <div class="selected">
                     <span>Your Collection</span>
                 </div>
                 <div class="dropdown-options" style="display: none; border: 1px solid #ccc; position: absolute; z-index: 1000; background-color: #fff; max-height: 200px; overflow-y: auto;">
@@ -31,17 +30,17 @@
             </div>
         </div>
         <div class="form-group">
-            <label for="price">Initial Price (in wAR)</label>
-            <input type="number" id="price" placeholder="Enter the initial price in wAR" required>
+            <label for="price">Starting Price (in wAR)</label>
+            <input type="number" id="price" placeholder="Initial price in wAR" required>
         </div>
         <div class="form-group">
-            <label id="quantityHeader" for="quantity">Quantity (# Available: 0)</label>
-            <input type="number" id="quantity" placeholder="Enter the quantity" required>
+            <label id="quantityHeader" for="quantity">Quantity (Available: 0)</label>
+            <input type="number" id="quantity" placeholder="Quantity to list" required>
         </div>
         
         
         <div class="form-group">
-            <label for="durationDropdown">Select Auction Duration</label>
+            <label for="durationDropdown">Auction Length</label>
             <select id="durationDropdown">
                 <option value="1">1 Day</option>
                 <option value="3">3 Days</option>

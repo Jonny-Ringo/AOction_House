@@ -45,9 +45,8 @@ body, html {
 
 .container {
     flex-grow: 1;
-    display: block;
-    align-items: center;
-    text-align: center;
+
+
     background-color: #ffffff;
     padding: 20px;
     border-radius: 8px;
@@ -64,11 +63,11 @@ body, html {
     border: 1px solid #cccccc;
     border-radius: 4px;
     background-color: #f9f9f9;
-    text-align: center;  /* Ensure elements inside the form are centered */
 }
 
 .form-container h2 {
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .form-group {
@@ -83,12 +82,12 @@ body, html {
 
 .form-group input, .form-group select {
     width: 100%;  /* Ensure inputs are full width */
-    max-width: 300px;  /* Limit the width of inputs */
+    max-width: 150px;  /* Limit the width of inputs */
     padding: 10px;
     border: 1px solid #cccccc;
     border-radius: 4px;
     font-size: 14px;
-    text-align: center;  /* Center the text inside input fields */
+    text-align: left;  /* Center the text inside input fields */
 }
 
 .button {
@@ -112,38 +111,58 @@ body, html {
     cursor: pointer;
     padding: 16px; /* Adjusted padding to accommodate the larger thumbnail */
     display: flex;
-    flex-direction: column; /* Stack the image and title vertically */
-    align-items: center; /* Center the content horizontally */
-    justify-content: center; /* Center the content vertically */
+
 }
 
-/* Selected Dropdown Styling */
-#assetDropdown .selected {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
+
 
 /* Thumbnail and Title Styling */
-.dropdown-option img, #assetDropdown .selected img {
-    width: 50%;
+.dropdown-option img{
+    width: 250px;
     height: auto;
     margin-bottom: 10px; /* Space between image and title */
 }
 
-.dropdown-option span, #assetDropdown .selected span {
+.dropdown-option span{
     text-align: center;
     font-size: 16px;
 }
 
-
-/* Hover state for "Your Collection" */
-#assetDropdown .selected span {
-    color: #333; /* Default text color */
-    transition: color 0.3s ease, transform 0.3s ease; /* Smooth transition for color and transform */
+#assetDropdown {
+    position: relative;
+    margin-left: 43%
 }
+
+/* Parent container for the asset dropdown */
+#assetDropdown .selected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Center horizontally */
+    justify-content: center;  /* Center vertically */
+    position: absolute;
+    width: 300px;  /* Define a fixed width for the image area */
+    height: 300px;  /* Define a fixed height for the image area */
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    overflow: hidden;  /* Hide any overflow to keep it clean */
+}
+
+/* Image styling to fit inside the container without stretching */
+#assetDropdown .selected img {
+    width: 80%;  /* Scale the image to fit the width */
+    height: 80%;  /* Scale the image to fit the height */
+    object-fit: contain;  /* Ensure it fits without distortion */
+}
+
+/* Optional: Add padding and styling for the span below the image */
+#assetDropdown .selected span {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #333;
+    text-align: center;
+}
+
 
 #assetDropdown .selected span:hover {
     color: #007bff; /* Change text color on hover */
@@ -155,7 +174,7 @@ body, html {
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     margin-bottom: 20px;
 }
@@ -170,7 +189,8 @@ body, html {
 }
 
 .asset-option img {
-    width: 150px;
+    max-width: 150px;
+    max-height: 150px;
     height: auto;
     margin-right: 10px;
 }
@@ -381,3 +401,84 @@ body, html {
     border-radius: 8px;
     margin-bottom: 15px;
 }
+
+
+/* Small Devices (Phones, <600px) */
+@media (max-width: 599px) {
+    .container {
+        width: 90%; /* Reduce width for smaller screens */
+    }
+
+    .form-container {
+        max-width: 100%; /* Make form full-width */
+        padding: 15px;
+    }
+
+    .form-group input, .form-group select {
+        max-width: 100%; /* Full width for inputs */
+        font-size: 14px;
+    }
+
+    #assetDropdown .selected {
+        width: 250px; /* Smaller asset preview */
+        height: 250px;
+        position: relative;
+    }
+
+    .connect-button {
+        right: 10px;
+    }
+
+    .auction-thumbnail {
+        height: 300px; /* Adjust thumbnail height */
+    }
+}
+
+/* Medium Devices (Tablets, 600px - 900px) */
+@media (min-width: 600px) and (max-width: 899px) {
+    .container {
+        width: 85%; /* Slightly reduce width */
+    }
+
+    .form-container {
+        max-width: 90%; /* Expand form container */
+    }
+
+    .form-group input, .form-group select {
+        max-width: 100%;
+        font-size: 15px;
+    }
+
+    #assetDropdown .selected {
+        width: 275px; /* Adjust asset preview size */
+        height: 275px;
+        position: relative;
+        margin-right: 100px;
+    }
+
+    .auction-thumbnail {
+        height: 325px; /* Adjust thumbnail size */
+    }
+}
+
+/* Large Devices (Desktops, 900px - 1200px) */
+@media (min-width: 900px) and (max-width: 1199px) {
+    .container {
+        width: 75%;
+    }
+
+    .form-container {
+        max-width: 80%; /* Maintain layout */
+    }
+
+    .form-group input, .form-group select {
+        font-size: 16px;
+    }
+
+    #assetDropdown {
+        margin-left: 40%; /* Adjust to maintain alignment */
+    }
+}
+
+
+

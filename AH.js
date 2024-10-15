@@ -565,7 +565,7 @@ async function fetchBalanceForAsset(assetId) {
 
             // Update quantity header
             document.getElementById("quantityHeader").innerText =
-                `Quantity (# Available: ${availableQuantity})`;
+                `Quantity (Available: ${availableQuantity})`;
         } else {
             console.warn(`No balance data found for asset: ${assetId}`);
         }
@@ -632,13 +632,13 @@ function populateAssetList(assets) {
         option.className = "asset-option";
 
         option.innerHTML = `
-            <img src="${asset.thumbnail}" alt="Thumbnail" style="width: 50px; height: 50px;">
+            <img src="${asset.thumbnail}" alt="Thumbnail"">
             <span>${asset.title}</span>
         `;
 
         option.onclick = async () => {
             document.querySelector("#assetDropdown .selected").innerHTML = `
-                <img src="${asset.thumbnail}" alt="Thumbnail" style="width: 50px; height: 50px;">
+                <img src="${asset.thumbnail}" alt="Thumbnail">
                 <span>${asset.title}</span>
             `;
             selectedAssetId = asset.id;
