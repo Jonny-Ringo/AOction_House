@@ -448,13 +448,26 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId) {
 }
 
 
+// Ensure modal close button triggers input reset
+document.querySelector("#auctionDetailsModal .close").addEventListener("click", () => {
+    closeAuctionDetails();  // Always reset on close
+});
 
 
-// Close auction details modal
+// Close auction details modal and reset the bid input
 function closeAuctionDetails() {
     const modal = document.getElementById("auctionDetailsModal");
+    
+    // Clear the bid amount input field
+    const bidAmountInput = modal.querySelector(".bidAmountInput");
+    if (bidAmountInput) {
+        bidAmountInput.value = ""; // Reset the input field
+    }
+
+    // Hide the modal
     modal.style.display = "none";
 }
+
 
 // Ensure modal close button is working
 document.querySelector(".close").addEventListener('click', closeAuctionDetails);
