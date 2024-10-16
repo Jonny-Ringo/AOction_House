@@ -83,6 +83,7 @@ body, html {
 .form-group input, .form-group select {
     width: 100%;  /* Ensure inputs are full width */
     max-width: 150px;  /* Limit the width of inputs */
+    width: 150px;
     padding: 10px;
     border: 1px solid #cccccc;
     border-radius: 4px;

@@ -6,46 +6,71 @@ let profileId = null;
 let selectedAssetId = null;
 
 
+
+
 async function connectWallet() {
     const connectWalletButton = document.getElementById("connectWalletButton");
 
     try {
         if (typeof window.arweaveWallet !== 'undefined' && window.arweaveWallet.connect) {
-            // Attempt to connect to the Arweave wallet with the required permissions
             await window.arweaveWallet.connect(
                 ["ACCESS_ADDRESS", "SIGN_TRANSACTION", "SIGNATURE"],
                 {
-                    name: "BazAR Asset Platform",
+                    name: "The AOction House",
                     logo: "https://arweave.net/your-logo-url",
                 }
             );
 
-            // After successful connection, get the active wallet address
             const connectedWallet = await window.arweaveWallet.getActiveAddress();
-
-            if (connectedWallet) {
-                walletConnected = true;
-                console.log("Wallet connected successfully:", connectedWallet);
-
-                // Update the connect button to reflect the connected state
-                connectWalletButton.textContent = `Connected: ${connectedWallet.slice(0, 6)}...${connectedWallet.slice(-4)}`;
-                connectWalletButton.style.backgroundColor = "#28a745"; // Green color to indicate success
-
-                await getBazARProfile(); // Fetch the user's BazAR profile once the wallet is connected
-            } else {
-                // Handle the case where the wallet connection was not successful
+            if (!connectedWallet) {
                 throw new Error("Unable to retrieve the wallet address.");
             }
+
+            // Set wallet state and update button
+            walletConnected = true;
+            connectWalletButton.textContent = `Connected: ${connectedWallet.slice(0, 6)}...${connectedWallet.slice(-4)}`;
+            connectWalletButton.style.backgroundColor = "#28a745"; // Green indicates success
+
+            console.log("Wallet connected successfully:", connectedWallet);
+
+            // Enable auction and bid buttons if needed
+            enableButtons(["cancelAuctionButton", "placeBidButton"]);
+
+            // Fetch user's BazAR profile and assets after wallet connection
+            await getBazARProfile(); 
         } else {
-            // Show a message if ArConnect wallet is not available
             showToast("Arweave wallet not found. Please ensure ArConnect is installed and enabled.");
         }
     } catch (error) {
         console.error("Error connecting wallet:", error);
-        // Provide feedback to the user if there was an error
         showToast("Failed to connect to Arweave wallet. Please try again.");
     }
 }
+
+// Helper function to enable multiple buttons
+function enableButtons(buttonIds) {
+    buttonIds.forEach(id => {
+        const button = document.getElementById(id);
+        if (button) {
+            button.disabled = false;
+        } else {
+            console.warn(`Button with ID '${id}' not found.`);
+        }
+    });
+}
+
+async function ensureWalletConnected() {
+    if (!walletConnected) {
+        showToast("Please connect your wallet.");
+        throw new Error("Wallet not connected.");
+    }
+    return await window.arweaveWallet.getActiveAddress();
+}
+
+window.addEventListener('load', () => {
+    document.getElementById('cancelAuctionButton').disabled = true;
+    document.getElementById('placeBidButton').disabled = true;
+});
 
 
 let auctionPage = 1;  // Track the current auction page
@@ -339,7 +364,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     
         // Call the placeBid function
         try {
-            await placeBid(auctionId, profileId, auctionProcessId);  // Make sure to pass the correct values
+            await placeBid(auctionId, profileId, auctionProcessId, minBid);  // Make sure to pass the correct values
         } catch (error) {
             console.error("Error placing bid:", error);
         }
@@ -350,6 +375,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
 
 async function placeBid(auctionId, bidderProfileId, auctionProcessId) {
     const bidAmountInput = document.querySelector(".bidAmountInput");
+    const walletAddress = await ensureWalletConnected(); // Verify wallet connection
 
     if (!bidAmountInput || parseFloat(bidAmountInput.value) < 0.000001) {
         showToast("Error: Minimum bid is 0.000001 wAR.");
@@ -764,13 +790,13 @@ async function resetAssetSelection() {
     // Reset the asset dropdown selection display
     const assetDropdownSelected = document.querySelector("#assetDropdown .selected");
     if (assetDropdownSelected) {
-        assetDropdownSelected.innerHTML = "<span>Select an asset</span>";
+        assetDropdownSelected.innerHTML = "<span>Your Collection</span>";
     }
 
     // Reset the quantity header
     const quantityHeader = document.getElementById("quantityHeader");
     if (quantityHeader) {
-        quantityHeader.innerText = "Quantity (# Available: -)";
+        quantityHeader.innerText = "Quantity (Available: -)";
     }
 
     // Clear form input fields
