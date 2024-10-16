@@ -29,7 +29,7 @@ async function connectWallet() {
             // Set wallet state and update button
             walletConnected = true;
             connectWalletButton.textContent = `Connected: ${connectedWallet.slice(0, 6)}...${connectedWallet.slice(-4)}`;
-            connectWalletButton.style.backgroundColor = "#28a745"; // Green indicates success
+            //connectWalletButton.style.backgroundColor = "#28a745"; // Green indicates success
 
             console.log("Wallet connected successfully:", connectedWallet);
 
@@ -605,6 +605,12 @@ async function fetchBalanceForAsset(assetId) {
             // Update quantity header
             document.getElementById("quantityHeader").innerText =
                 `Quantity (Available: ${availableQuantity})`;
+
+            // Remove any previously attached event listeners
+            document.getElementById('listAssetButton').removeEventListener('click', handleListAssetClick);
+            
+            // Add a new event listener for this asset
+            document.getElementById('listAssetButton').addEventListener('click', () => handleListAssetClick(availableQuantity));
         } else {
             console.warn(`No balance data found for asset: ${assetId}`);
         }
@@ -725,23 +731,45 @@ function calculateExpiryTimestamp(days) {
     return (now + durationMs).toString();
 }
 
-async function listAsset() {
+
+// A wrapper function to handle the listing process
+async function handleListAssetClick(availableQuantity) {
+    // Call the listAsset function with the correct available quantity
+    await listAsset(availableQuantity);
+}
+
+async function listAsset(availableQuantity) {
     console.log("List Asset button clicked!");
 
     const priceInput = document.getElementById("price").value;
     const durationInput = document.getElementById("durationDropdown").value;
-    const quantityInput = document.getElementById("quantity").value || 1;
+    const quantityInputRaw = document.getElementById("quantity").value;  // Raw input value
+    const quantityInput = parseInt(quantityInputRaw);  // Convert to integer
+
+    // Check if the entered quantity exceeds available quantity
+    if (quantityInput > availableQuantity) {
+        showToast(`Error: You are trying to list more than available. Available quantity: ${availableQuantity}`);
+        return;  // Prevent the function from proceeding
+    }
+
+    // Ensure quantity input is a valid number and greater than zero
+    if (!quantityInputRaw || isNaN(quantityInput) || quantityInput <= 0) {
+        showToast("Please enter a valid quantity.");
+        return;  // Prevent further execution
+    }
 
     if (!selectedAssetId || !priceInput || !durationInput || !profileId) {
         showToast("Please select an asset, enter price, choose duration, and ensure your profile ID is set.");
-        return;
+        return;  // Prevent further execution
     }
 
+    // Proceed with the listing process
     const minPrice = (priceInput * 1e12).toString();
     const expiryTimestamp = calculateExpiryTimestamp(durationInput);
 
     try {
         const signer = createDataItemSigner(window.arweaveWallet);
+
         const transferResponse = await message({
             process: profileId,
             tags: [
@@ -904,8 +932,6 @@ function showToast(message) {
     }, 3000);  // Show the toast for 3 seconds before starting the fade-out
 }
 
-
-document.getElementById('listAssetButton').addEventListener('click', listAsset);
 
 window.connectWallet = connectWallet;
 window.listAsset = listAsset;
