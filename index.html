@@ -10,10 +10,15 @@
 
 <body>
 
+    <div class="logo-container">
+        <img class="mainLogo" src="/clean_logo.png" alt="main Logo">
+    </div>
+
 <div class="header">
     <h1>The AOction House</h1>
     <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect Wallet</button>
 </div>
+
 
 <div class="container">
     <div class="form-container">
@@ -47,7 +52,7 @@
                 <option value="14">14 Days</option>
             </select>
         </div>
-        <button class="button" id="listAssetButton">List Asset</button>
+        <button class="button" type="button" id="listAssetButton">List Asset</button>
     </div>
 
 <!-- Asset Selection Modal -->
@@ -88,17 +93,17 @@
         <span class="close">&times;</span>
         <h2 id="auctionName">Auction Name</h2>
         <img id="auctionImage" src="" alt="Auction Image" class="auction-image">
-        <p><strong>Starting Price (wAR):</strong> <span id="minBid"></span></p>
-        <p><strong>Current Bid (wAR):</strong> <span id="currentBid"></span></p>
-        <p><strong>Quantity:</strong> <span id="modalQuantity"></span></p>
-        <p><strong>Seller:</strong> <span id="seller"></span></p>
-        <p><strong>End Date:</strong> <span id="expiry"></span></p>
+        <p>Starting Price (wAR): <span id="minBid"></span></p>
+        <p>Current Bid (wAR): <span id="currentBid"></span></p>
+        <p>Quantity: <span id="modalQuantity"></span></p>
+        <p>Seller: <span id="seller"></span></p>
+        <p>End Date: <span id="expiry"></span></p>
 
     <!-- Bid Section -->
     <div class="bid-section">
         <label for="bidAmount">Place your bid (wAR):</label>
         <input type="number" class="bidAmountInput" step="0.000001" min="0.000001" placeholder="Enter bid amount (min 0.000001)">
-        <button class="placeBidButton button">Place Bid</button>
+        <button class="placeBidButton">Place Bid</button>
     </div>
     
     
