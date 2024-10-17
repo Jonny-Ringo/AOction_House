@@ -363,30 +363,54 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     
         // Call the placeBid function
         try {
-            await placeBid(auctionId, profileId, auctionProcessId, minBid);  // Make sure to pass the correct values
+            await placeBid(auctionId, profileId, auctionProcessId, minBid, highestBid);  // Make sure to pass the correct values
         } catch (error) {
-            console.error("Error placing bid:", error);
+            showToast(error);
         }
     };
     
 }
 
 
-async function placeBid(auctionId, bidderProfileId, auctionProcessId) {
+async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, highestBid) {
     const bidAmountInput = document.querySelector(".bidAmountInput");
     const walletAddress = await ensureWalletConnected(); // Verify wallet connection
 
-    if (!bidAmountInput || parseFloat(bidAmountInput.value) < 0.000001) {
+    // Parse bid amount entered by the user
+    const enteredBidAmount = parseFloat(bidAmountInput.value);
+    console.log("Entered bid amount:", enteredBidAmount);
+
+    if (!bidAmountInput || enteredBidAmount < 0.000001) {
         showToast("Error: Minimum bid is 0.000001 wAR.");
+        console.log("Bid rejected: Entered bid is less than minimum bid requirement.");
         return;
     }
 
-    const bidAmount = (parseFloat(bidAmountInput.value) * 1e12).toString();  // Convert to 12-decimal format
+    // Handle case where highestBid is "No Bids" by setting it to 0
+    const highestBidValue = highestBid === "No Bids" ? 0 : parseFloat(highestBid);
+    console.log("minBid:", minBid, "highestBid (converted):", highestBidValue);
+
+    // Get the greater value between minBid and highestBidValue
+    const minimumRequiredBid = Math.max(minBid, highestBidValue); // Get the higher value
+    console.log("Minimum required bid:", minimumRequiredBid);
+
+    // Compare entered bid with the minimum required bid
+    if (enteredBidAmount < minimumRequiredBid) {
+        showToast(`Error: Bid must be greater than ${minimumRequiredBid} wAR.`);
+        console.log(`Bid rejected: Entered bid (${enteredBidAmount} wAR) is less than minimum required bid (${minimumRequiredBid} wAR).`);
+        return;  // Prevent further execution if bid is too low
+    }
+
+    // Convert the bid to the correct 12-decimal format for wAR
+    const bidAmount = (enteredBidAmount * 1e12).toString();  // Convert to 12-decimal format
+    console.log("Converted bid amount (12-decimal format):", bidAmount);
 
     try {
         // Step 1: Get the wallet address and store it in a variable
         const walletAddress = await window.arweaveWallet.getActiveAddress();
         const signer = createDataItemSigner(window.arweaveWallet);
+
+        console.log("Proceeding to send the bid transaction...");
 
         // Step 2: Transfer the bid amount (wAR transfer)
         const transferResponse = await message({
@@ -435,7 +459,7 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId) {
             const successMessage = bidResultData.Output?.data || "Bid placed successfully.";
             showToast(successMessage);
             await fetchLiveAuctions();  // Refresh the auction list
-            closeAuctionDetails()
+            closeAuctionDetails();
         } else {
             console.error("No Debit-Notice found.");
             showToast("Error: Bid transfer failed.");
@@ -445,6 +469,8 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId) {
         showToast("Error placing bid. Please try again.");
     }
 }
+
+
 
 
 // Ensure modal close button triggers input reset
