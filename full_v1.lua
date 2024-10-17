@@ -52,7 +52,7 @@ Handlers.add(
 
         -- Send a confirmation message
         print("Payment received from: " .. payer .. " of amount: " .. m.Quantity)
-        Send({Target = payer, Data = "Payment received for " .. m.Quantity .. " wAR."})
+        Send({Target = payer, Action = "Payment-Received", Data = "Payment received for " .. m.Quantity .. " wAR."})
     end
 )
 

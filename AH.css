@@ -1,37 +1,61 @@
+@font-face {
+    font-family: 'Dumverse';
+    src: url('./Dumverse_Font.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
 body, html {
     height: 100%;
+    width: 100%;
     margin: 0;
     display: flex;
     flex-direction: column;
-    font-family: Georgia, Arial;
-    background-color: #f0f0f0;
+    font-family: 'Dumverse', Georgia, Arial;
+    color: white;
+    background: linear-gradient(to right, #8c52ff, #5ce1e6);
+
 }
 
 .header {
     width: 100%;
     padding: 10px 0;
-    background-color: #ffffff;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: center;  /* Center the entire content of the header */
     align-items: center;
-    box-sizing: border-box;
+    
     position: relative;  /* Allows absolute positioning for the button */
 }
 
 .header h1 {
-    margin: 0;
+    margin-top: 10px;
+    margin-bottom: 0;
     text-align: center;  /* Ensure the text is centered */
-    flex-grow: 1;  /* Allow the title to grow and take up available space */
+    font-weight: 200;
+    font-size: 7vh;
+}
+
+.mainLogo {
+    height: 10%;
+    position: absolute;
+    margin-top: 10px;
+    margin-left: 25px;
+}
+
+.logo-container {
+    margin: 0;
+    padding: 0;
 }
 
 .connect-button {
+    font-family: 'Dumverse';
     padding: 8px 16px;
-    font-size: 16px;
+    font-size: 26px;
     color: #ffffff;
-    background-color: #007bff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
     border: none;
-    border-radius: 4px;
+    border-radius: 25px;
     cursor: pointer;
     transition: background-color 0.3s;
     position: absolute;
@@ -39,19 +63,22 @@ body, html {
 }
 
 .connect-button:hover {
-    background-color: #0056b3;
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.connect-button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
 }
 
 
 .container {
     flex-grow: 1;
-
-
-    background-color: #ffffff;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin: 20px auto;  /* Center the entire container */
+    margin: 0 auto;  /* Center the entire container */
     width: 80%;  /* Limit the width for better alignment */
 }
 
@@ -60,14 +87,15 @@ body, html {
     max-width: 600px;
     margin: 20px auto;  /* Center the form itself */
     padding: 20px;
-    border: 1px solid #cccccc;
-    border-radius: 4px;
-    background-color: #f9f9f9;
+    border-radius: 15px;
+    background-color: #8c52ff;
 }
 
 .form-container h2 {
+    margin-top: 10px;
     margin-bottom: 20px;
     text-align: center;
+    font-weight: 200;
 }
 
 .form-group {
@@ -77,7 +105,7 @@ body, html {
 .form-group label {
     display: block;
     margin-bottom: 5px;
-    font-weight: bold;
+    font-weight: 200;
 }
 
 .form-group input, .form-group select {
@@ -86,25 +114,47 @@ body, html {
     width: 150px;
     padding: 10px;
     border: 1px solid #cccccc;
-    border-radius: 4px;
+    border-radius: 10px;
     font-size: 14px;
     text-align: left;  /* Center the text inside input fields */
 }
 
 .button {
     padding: 10px 20px;
-    font-size: 16px;
+    font-size: 26px;
+    font-family: 'Dumverse';
     color: #ffffff;
-    background-color: #007bff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
     border: none;
-    border-radius: 4px;
+    border-radius: 25px;
     cursor: pointer;
     transition: background-color 0.3s;
     margin-top: 20px;
 }
 
 .button:hover {
-    background-color: #0056b3;
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
+}
+
+.placeBidButton{
+    padding: 10px 20px;
+    font-size: 16px;
+    font-family: 'Dumverse';
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 20px;
 }
 
 /* Dropdown Option Styling */
@@ -131,7 +181,8 @@ body, html {
 
 #assetDropdown {
     position: relative;
-    margin-left: 43%
+    margin-left: 43%;
+    padding-bottom: 15px;
 }
 
 /* Parent container for the asset dropdown */
@@ -143,9 +194,9 @@ body, html {
     position: absolute;
     width: 300px;  /* Define a fixed width for the image area */
     height: 300px;  /* Define a fixed height for the image area */
-    border: 1px solid #cccccc;
+    border: 1px solid white;
     border-radius: 8px;
-    background-color: #f9f9f9;
+    color: white;
     overflow: hidden;  /* Hide any overflow to keep it clean */
 }
 
@@ -153,20 +204,22 @@ body, html {
 #assetDropdown .selected img {
     width: 80%;  /* Scale the image to fit the width */
     height: 80%;  /* Scale the image to fit the height */
+    border-radius: 8px;
     object-fit: contain;  /* Ensure it fits without distortion */
 }
 
 /* Optional: Add padding and styling for the span below the image */
 #assetDropdown .selected span {
     margin-top: 10px;
-    font-size: 16px;
-    color: #333;
+    font-size: 26px;
+    color: white;
     text-align: center;
+    cursor: pointer;
 }
 
 
 #assetDropdown .selected span:hover {
-    color: #007bff; /* Change text color on hover */
+    color: #5ce1e6; /* Change text color on hover */
     transform: scale(1.05); /* Slightly enlarge the text on hover */
 }
 
@@ -176,7 +229,8 @@ body, html {
     flex-direction: column;
     align-items: center;
     max-height: 400px;
-    overflow-y: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     margin-bottom: 20px;
 }
 
@@ -198,7 +252,7 @@ body, html {
 
 .asset-option span {
     font-size: 16px;
-    color: #333;
+    color: white;
     text-align: left;
 }
 
@@ -206,20 +260,32 @@ body, html {
 .pagination-controls {
     display: flex;
     justify-content: space-between;
+    font-family: 'Dumverse';
+    color: white;
+    font-size: 26px;
+
 }
 
 .pagination-controls button {
     padding: 8px 16px;
-    background-color: #007bff;
-    color: #fff;
+    font-family: 'Dumverse';
+    font-size: 26px;
+    color: white;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
     border: none;
-    border-radius: 4px;
+    border-radius: 25px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
 .pagination-controls button:hover {
-    background-color: #0056b3;
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-controls button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
 }
 
 
@@ -261,6 +327,11 @@ body, html {
     width: 100%;
 }
 
+.live-auctions h2 {
+    font-weight: 200;
+    font-size: 4vh;
+}
+
 .auction-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -273,8 +344,7 @@ body, html {
 
 /* Auction thumbnail styling */
 .auction-thumbnail {
-    background-color: #f9f9f9;
-    border: 1px solid #ccc;
+    background-color: #8c52ff;
     border-radius: 8px;
     padding: 15px;
     width: 200px;
@@ -297,15 +367,18 @@ body, html {
 /* Thumbnail text styling */
 .auction-thumbnail h3 {
     margin: 2px 0;
+    padding-bottom: 5px;
     font-size: 20px;
-    color: #333;
+    font-weight: 200;
+    color: white;
     text-align: center;
+    border-bottom: 1px solid white;
 }
 
 .auction-thumbnail p {
     margin: 2px 4px;
     font-size: 14px;
-    color: #333;
+    color: white;
     text-align: left;
 }
 
@@ -325,33 +398,40 @@ body, html {
     margin-top: 10px;
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #28a745;
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
     border: none;
-    border-radius: 4px;
+    border-radius: 25px;
     cursor: pointer;
 }
 
 #placeBidButton:hover {
-    background-color: #218838;
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+#placeBidButton:active {
+    transform: scale(0.95);
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);
 }
 
 #cancelAuctionButton {
     margin-top: 15px;
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #dc3545;
     border: none;
-    border-radius: 4px;
+    border-radius: 25px;
     cursor: pointer;
 }
 
 #cancelAuctionButton:hover {
-    background-color: #c82333;
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 #cancelAuctionButton:disabled {
-    background-color: #aaa;
-    cursor: not-allowed;
+    transform: scale(0.95);
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);
 }
 
 /* Modal Popup */
@@ -368,10 +448,10 @@ body, html {
 }
 
 .modal-content {
-    background-color: #fff;
+    background-color: #8c52ff;
     margin: 15% auto;
     padding: 20px;
-    border: 1px solid #888;
+    border: 1px solid white;
     width: 80%;
     max-width: 600px;
     max-height: 700px; /* Fixed height for modal */
@@ -379,9 +459,17 @@ body, html {
     overflow: auto;
 }
 
+.modal-content h2 {
+    font-weight: 200;
+}
+
+.modal-content p {
+    font-weight: 200;
+}
+
 /* Modal close button */
 .modal .close {
-    color: #aaa;
+    color: white;
     float: right;
     font-size: 28px;
     font-weight: bold;
@@ -389,8 +477,12 @@ body, html {
 
 .modal .close:hover,
 .modal .close:focus {
-    color: #000;
-    text-decoration: none;
+    transform: scale(1.15);
+    cursor: pointer;
+}
+
+.modal .close:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
     cursor: pointer;
 }
 
