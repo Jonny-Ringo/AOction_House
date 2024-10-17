@@ -184,7 +184,6 @@ async function displayAuctions(page) {
 
         const auctionThumbnail = document.createElement('div');
         auctionThumbnail.classList.add('auction-thumbnail');
-        auctionThumbnail.style.border = '1px solid #ccc';
         auctionThumbnail.style.padding = '10px';
         auctionThumbnail.style.borderRadius = '8px';
 
@@ -731,11 +730,17 @@ function calculateExpiryTimestamp(days) {
     return (now + durationMs).toString();
 }
 
-
+let isProcessing = false; // Flag to prevent multiple signer attempts
 // A wrapper function to handle the listing process
 async function handleListAssetClick(availableQuantity) {
-    // Call the listAsset function with the correct available quantity
+    if (isProcessing) {
+        console.warn("Already processing a listing. Please wait.");
+        return; // Prevent double execution
+    }
+
+    isProcessing = true; // Set the flag to prevent multiple processing
     await listAsset(availableQuantity);
+    isProcessing = false; // Reset the flag after processing
 }
 
 async function listAsset(availableQuantity) {
