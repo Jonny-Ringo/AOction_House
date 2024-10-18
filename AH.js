@@ -61,16 +61,11 @@ function enableButtons(buttonIds) {
 
 async function ensureWalletConnected() {
     if (!walletConnected) {
-        showToast("Please connect your wallet.");
-        throw new Error("Wallet not connected.");
+        showToast("Wallet not connected.");
     }
     return await window.arweaveWallet.getActiveAddress();
 }
 
-window.addEventListener('load', () => {
-    document.getElementById('cancelAuctionButton').disabled = true;
-    document.getElementById('placeBidButton').disabled = true;
-});
 
 
 let auctionPage = 1;  // Track the current auction page
@@ -144,7 +139,6 @@ async function fetchLiveAuctions() {
 
 
 // Function to display auctions with pagination
-// Function to display auctions with pagination
 async function displayAuctions(page) {
     const auctionGrid = document.getElementById('auctionGrid');
     const paginationControls = document.getElementById('paginationControls');
@@ -168,7 +162,15 @@ async function displayAuctions(page) {
     const truncateAddress = (address) =>
         address.length > 10 ? `${address.slice(0, 4)}...${address.slice(-4)}` : address;
 
-    const connectedWallet = await window.arweaveWallet.getActiveAddress();
+    let connectedWallet = null;
+    try {
+        // Try to get the wallet address if the user has connected the wallet
+        if (typeof window.arweaveWallet !== 'undefined') {
+            connectedWallet = await window.arweaveWallet.getActiveAddress();
+        }
+    } catch (error) {
+        console.log("No wallet connected, continuing to display auctions without wallet.");
+    }
 
     for (const auction of auctionsToDisplay) {
         const assetId = auction.AssetID;
@@ -198,11 +200,13 @@ async function displayAuctions(page) {
             </p>
         `;
 
-        auctionThumbnail.onclick = () =>
+        // Allow viewing auction details without a wallet connection
+        auctionThumbnail.onclick = async () => {
             openAuctionDetails(
                 auctionName, auctionImage, minBid, auction.highestBid, seller, expiry,
                 auction.auctionId, null, connectedWallet, modalQuantity
             );
+        };
 
         auctionGrid.appendChild(auctionThumbnail);
     }
@@ -291,33 +295,28 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     modal.style.display = "block";
 
     // Ensure the cancel button is hidden by default
-    const cancelButton = modal.querySelector("#cancelAuctionButton"); // Scoped to modal
-    cancelButton.style.display = "none";
+    const cancelButton = modal.querySelector("#cancelAuctionButton");
+    cancelButton.style.display = "none";  // Always start with the button hidden
 
     try {
-        // Fetch the connected wallet address
-        const connectedWalletAddress = await window.arweaveWallet.getActiveAddress();
-
-        // Show the cancel button if the connected wallet matches the seller
-        if (connectedWalletAddress === seller) {
-            cancelButton.style.display = "inline-block"; // Make the button visible
-
-            // Attach an event listener to the cancel button
+        // Ensure the wallet is connected and get the wallet address
+        const walletAddress = await ensureWalletConnected();  // This will throw if the wallet is not connected
+        
+        // Show the cancel button only if the connected wallet matches the seller
+        if (walletAddress === seller) {
+            cancelButton.style.display = "inline-block";  // Make the button visible
             cancelButton.onclick = async () => {
                 try {
                     const signer = createDataItemSigner(window.arweaveWallet);
-
-                    // Send the cancel auction message with the correct auction ID
                     const cancelResponse = await message({
-                        process: auctionProcessId,  // Auction process ID
+                        process: auctionProcessId,
                         tags: [
                             { name: "Action", value: "Cancel-Auction" },
-                            { name: "AuctionId", value: auctionId }  // Use the correct auction ID
+                            { name: "AuctionId", value: auctionId }
                         ],
                         signer: signer
                     });
 
-                    // Fetch the result and display a success message
                     const resultData = await result({
                         message: cancelResponse,
                         process: auctionProcessId
@@ -325,51 +324,44 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
 
                     const successMessage = resultData.Output?.data || "Auction canceled successfully.";
                     showToast(successMessage);
-                    await fetchLiveAuctions();  // Refresh the auction list
+                    await fetchLiveAuctions();
                     await closeAuctionDetails();
-                    await resetAssetSelection();  // Close the modal
                 } catch (error) {
                     console.error("Error canceling auction:", error);
                     showToast("Error: Failed to cancel the auction.");
                 }
             };
-        } else {
-            cancelButton.style.display = "none";  // Hide if not the seller
         }
     } catch (error) {
-        console.error("Error getting connected wallet address:", error);
+        console.error("No Wallet connected");
     }
 
-    // Attach "Place Bid" functionality to the bid button
+    // Place Bid Button functionality
     const placeBidButton = modal.querySelector(".placeBidButton");
     placeBidButton.onclick = async function () {
-        console.log("Bid button clicked!");
-    
-        const bidAmountInput = modal.querySelector(".bidAmountInput");  // Select the input field
-        if (!bidAmountInput) {
-            console.error("Bid Amount Input not found.");
-            showToast("Error: Bid input field not found.");
-            return;
-        }
-    
-        const bidAmount = bidAmountInput.value;  // Access the input value
-        console.log("Bid Amount:", bidAmount);  // Log the bid amount for debugging
-    
-        // Validate the bid amount
-        if (parseFloat(bidAmount) < 0.000001) {
-            showToast("Bid amount must be at least 0.000001 wAR.");
-            return;
-        }
-    
-        // Call the placeBid function
         try {
-            await placeBid(auctionId, profileId, auctionProcessId, minBid, highestBid);  // Make sure to pass the correct values
+            const bidAmountInput = modal.querySelector(".bidAmountInput");
+            if (!bidAmountInput) {
+                showToast("Error: Bid input field not found.");
+                return;
+            }
+
+            const bidAmount = parseFloat(bidAmountInput.value);
+            if (bidAmount <= 0) {
+                showToast("Please enter a valid bid amount.");
+                return;
+            }
+
+            // Place the bid only after wallet is connected and valid input is given
+            await placeBid(auctionId, profileId, auctionProcessId, minBid, highestBid);
         } catch (error) {
-            showToast(error);
+            console.error("Error placing bid:", error);
+            showToast("Error: No Wallet Connected");
         }
     };
-    
 }
+
+
 
 
 async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, highestBid) {
@@ -466,7 +458,7 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
         }
     } catch (error) {
         console.error("Error placing bid:", error);
-        showToast("Error placing bid. Please try again.");
+        showToast("Enter a bid amount to place a bid.");
     }
 }
 
