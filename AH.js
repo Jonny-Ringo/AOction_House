@@ -61,9 +61,9 @@ function enableButtons(buttonIds) {
 
 async function ensureWalletConnected() {
     if (!walletConnected) {
-        showToast("Wallet not connected.");
+        throw new Error("Wallet not connected");  // Throw an error to stop the flow if not connected
     }
-    return await window.arweaveWallet.getActiveAddress();
+    return await window.arweaveWallet.getActiveAddress();  // Get active wallet address if connected
 }
 
 
