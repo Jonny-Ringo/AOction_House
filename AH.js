@@ -212,9 +212,9 @@ async function displayAuctions(page) {
     }
 
     paginationControls.innerHTML = `
-        <button id="prevAuctionPage" ${auctionPage === 1 ? 'disabled' : ''}>Previous</button>
+        <button id="prevAuctionPage" ${auctionPage === 1 ? 'disabled' : ''}>←Prev</button>
         <span>Page ${auctionPage} of ${totalAuctionPages}</span>
-        <button id="nextAuctionPage" ${auctionPage === totalAuctionPages ? 'disabled' : ''}>Next</button>
+        <button id="nextAuctionPage" ${auctionPage === totalAuctionPages ? 'disabled' : ''}>Next→</button>
     `;
 
     document.getElementById('prevAuctionPage').addEventListener('click', () => {
@@ -387,7 +387,7 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     console.log("Minimum required bid:", minimumRequiredBid);
 
     // Compare entered bid with the minimum required bid
-    if (enteredBidAmount < minimumRequiredBid) {
+    if (enteredBidAmount <= minimumRequiredBid) {
         showToast(`Error: Bid must be greater than ${minimumRequiredBid} wAR.`);
         console.log(`Bid rejected: Entered bid (${enteredBidAmount} wAR) is less than minimum required bid (${minimumRequiredBid} wAR).`);
         return;  // Prevent further execution if bid is too low
