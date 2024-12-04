@@ -1,0 +1,468 @@
+@font-face {
+    font-family: 'Dumverse';
+    src: url('./Dumverse_Font.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
+body, html {
+    z-index: 2;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Dumverse', Georgia, Arial;
+    color: white;
+    background: linear-gradient(to right, #8c52ff, #5ce1e6);
+
+}
+
+.header {
+    width: 100%;    
+    display: flex;
+    justify-content: center;  /* Center the entire content of the header */
+    align-items: center;
+    
+    position: relative;  /* Allows absolute positioning for the button */
+}
+
+.header h2 {
+    margin-top: 20px;
+    margin-bottom: 0;
+    margin-left: 130px;
+    margin-right: auto;
+    font-weight: 200;
+    font-size: 35px;
+    text-decoration: none;
+}
+
+
+.header a {
+    color: inherit;  /* This will keep the link color same as the text */
+    text-decoration: none;  /* This removes the underline */
+}
+
+/* Optional: if you want a hover effect */
+.header a:hover {
+    text-decoration: underline;  /* Adds underline on hover */
+}
+
+/* This ensures the links stay the same color even after being visited */
+.header a:visited {
+    color: inherit;
+}
+
+.header-divider {
+    font-family: Arial, sans-serif;  /* Clean, standard font */
+    font-weight: 100;  /* Make it thinner */
+    font-size: 45px;  /* Make it larger */
+    margin: 0;  /* Add some spacing around it */
+    vertical-align: text-bottom;  /* Align it vertically */
+    color: white;  /* Slightly less bright than text */
+}
+
+.listingsToggle {
+    position: absolute;
+    left: 485px;
+    margin-top: 57px;
+    margin-right: auto;
+    font-weight: 200;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.historyNav {
+    position: absolute;
+    left: 620px;
+    margin-top: 57px;
+    margin-right: auto;
+    font-weight: 200;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.logo-link {
+    position: absolute; /* Match the logo's absolute positioning */
+    top: 10px; /* Same as the logo's margin-top */
+    left: 25px; /* Same as the logo's margin-left */
+    display: inline-block; /* Ensure the link wraps the content */
+    text-decoration: none; /* Remove underline (if needed) */
+    height: 100%;
+    width: auto;
+}
+
+.mainLogo {
+    height: 100%; /* Maintain the logo's small size */
+    display: block; /* Prevent inline spacing issues */
+}
+
+
+.logo-container {
+    top: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.connect-button {
+    font-family: 'Dumverse';
+    padding: 8px 16px;
+    font-size: 26px;
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    position: absolute;
+    right: 50px;  /* Position the button to the right */
+}
+
+.connect-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.connect-button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
+}
+
+
+
+.button {
+    padding: 10px 20px;
+    font-size: 26px;
+    font-family: 'Dumverse';
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 20px;
+    text-decoration: none;
+}
+
+.button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
+}
+
+.search-container {
+    position: absolute;
+    display: flex;
+    left: 840px;
+    margin-right: auto;
+    top: 35px;
+}
+
+#historySearch {
+    padding: 8px 16px;
+    border-radius: 25px;
+    border: none;
+    font-size: 18px;
+    width: 300px;
+    font-family: 'Dumverse';
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+#historySearch::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#historySearch:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-family: 'Dumverse';
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 0;
+    text-decoration: none;
+}
+
+.search-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.search-button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
+}
+
+.history-container {
+    width: 80%;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.history-entry {
+    display: grid;
+    align-items: center;
+    grid-template-columns: auto 1fr auto;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+}
+
+.price-info {
+    text-align: right;
+}
+
+.history-title {
+    text-align: center; /* Centers the text */
+    justify-content: center;
+    margin: auto; /* Adjust spacing if needed */
+    font-size: 26px; /* Adjust size for better appearance */
+    font-weight: 200;
+}
+
+
+.history-entry:hover {
+    transform: scale(1.10);
+    box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.5);
+}
+
+.history-entry:active {
+    transform: scale(1.05);
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);
+}
+
+.history-thumbnail {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-right: 20px;
+}
+
+.history-details {
+    flex-grow: 1;
+    display: inline-block;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+
+
+/* Pagination buttons */
+.pagination-controls {
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Dumverse';
+    color: white;
+    font-size: 26px;
+
+}
+
+.pagination-controls button {
+    padding: 8px 16px;
+    font-family: 'Dumverse';
+    font-size: 26px;
+    color: white;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.pagination-controls button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-controls button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-container {
+    background-color: #8c52ff;
+    margin: 15% auto;
+    padding: 5px;
+    border: 1px solid white;
+    width: 960px;
+    max-height: 700px; /* Fixed height for modal */
+    text-align: center;
+    border-radius: 25px;
+    overflow-y: auto;
+}
+
+.modal-content {
+    display: inline-flex;
+}
+
+/* Modal close button */
+.modal .close {
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal .close:hover,
+.modal .close:focus {
+    transform: scale(1.15);
+    cursor: pointer;
+}
+
+.modal .close:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    cursor: pointer;
+}
+
+
+.asset-image {
+    margin-right: 0px;
+    margin-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    right: auto;
+    padding: 0%;
+    width: 500px;      /* Set a fixed width */
+    height: 500px;     /* Set a fixed height to ensure a uniform box size */
+    object-fit: contain;  /* Ensure the image fits within the box without being distorted */
+    border-radius: 8px;
+    border: solid white;
+}
+
+
+.history-details h3 {
+    text-decoration: underline;
+    text-align: center;
+    margin-right: 20px;
+    margin-left: 0px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-weight: 200;
+    font-size: 32px;
+    font-weight: 200;
+}
+
+.history-details p {
+    font-weight: 200;
+    font-size: 20px;
+}
+
+.history-buyer a, 
+.asset-owner a {
+    color: inherit;  /* This will keep the link color same as the text */
+    text-decoration: none;  /* This removes the underline */
+}
+
+/* Optional: if you want a hover effect */
+.history-buyer a:hover,
+.asset-owner a:hover {
+    text-decoration: underline;  /* Adds underline on hover */
+}
+
+/* This ensures the links stay the same color even after being visited */
+.history-buyer a:visited,
+.asset-owner a:visited {
+    color: inherit;
+}
+
+.history-box {
+    margin: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 25px;
+    width: auto;
+    height: 85%; /* Allow it to grow fully in height */
+    display: flex;  /* Use flexbox */
+    flex-direction: column; /* Stack children vertically */
+    justify-content: space-between; /* Ensure space is evenly distributed */
+    box-sizing: border-box; /* Make sure padding and border are included in width/height */
+}
+
+.history-quantity {
+    text-align: center;
+    border-bottom: solid 2px white;
+    margin-top: 0px;
+    margin-bottom: 5px;
+    padding-bottom: 10px;
+}
+
+.history-price {
+    display: flex;                 /* Enable flexbox layout */
+    justify-content: space-between; /* Push the text to the left and span to the right */
+    align-items: center; 
+    margin-bottom: 5px;          /* Vertically align items in the middle */
+}
+
+.history-price span {
+    margin-left: 5px;
+    display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+    padding: 7px;
+    background-color: rgba(255, 255, 255, 0.4);
+    text-align: center;            /* Center the text within the span */
+    min-width: 200px; 
+    width: 80;             /* Optional: set a minimum width to control size */
+    border-radius: 8px;    /* Center the text within the box */
+}
+
+.history-bid {
+    display: flex;                 /* Enable flexbox layout */
+    justify-content: space-between; /* Push the text to the left and span to the right */
+    align-items: center; 
+    margin-bottom: 5px; 
+}
+
+.history-bid span {
+    margin-left: 5px;
+    display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+    padding: 7px;
+    background-color: rgba(255, 255, 255, 0.4);
+    text-align: center;            /* Center the text within the span */
+    min-width: 200px;              /* Optional: set a minimum width to control size */
+    border-radius: 8px;            /* Optional: give the span rounded corners */
+}
+
+
+.history-end {
+    text-align: center;
+    margin: auto;
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The AOction House</title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="The AOction House">
+    <meta name="description" content="Create live auctions and bid on Atomic Assets, all on AO and Arweave!">
+    <meta name="keywords" content="AOction, digital auction, bazar, digital assets, bidding, collectibles, Arweave, AO">
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="language" content="English">
+    <meta name="author" content="The DumDumz Team">
+
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://aoction-house.arweave.net/">
+    <meta property="og:title" content="The AOction House">
+    <meta property="og:description" content="Create live auctions and bid on Atomic Assets, all on AO and Arweave!">
+    <meta property="og:image" content="https://arweave.net/uH2K4fHQoSXh5kNmIb39mmsrz2Y8VVUMkwbU1UWI6YY">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://aoction-house.arweave.net/">
+    <meta name="twitter:title" content="The AOction House">
+    <meta name="twitter:description" content="Create live auctions and bid on Atomic Assets, all on AO and Arweave!">
+    <meta name="twitter:image" content="https://arweave.net/uH2K4fHQoSXh5kNmIb39mmsrz2Y8VVUMkwbU1UWI6YY">
+
+    <!-- Additional Meta Tags for Enhanced Search Results -->
+    <meta name="theme-color" content="#8c52ff"> 
+    <meta name="msapplication-TileColor" content="#8c52ff">
+    <meta name="msapplication-TileImage" content="https://arweave.net/uH2K4fHQoSXh5kNmIb39mmsrz2Y8VVUMkwbU1UWI6YY">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="https://arweave.net/AcCm-N2AOxI17KLIUqZOBxBFrExpvogn3IeM_oM2lUo" type="image/x-icon">
+    <link rel="shortcut icon" href="https://arweave.net/AcCm-N2AOxI17KLIUqZOBxBFrExpvogn3IeM_oM2lUo" type="image/x-icon">
+    
+    <link rel="stylesheet" href="history.css">
+    <link rel="stylesheet" href="background/AnimatedBackground.css">
+</head>
+
+<body>
+
+
+
+
+<div class="header">
+    <div class="logo-container">
+        <a href="index.html" class="logo-link">
+            <img class="mainLogo" src="clean_logo.png" alt="DumDumz Home">
+        </a>        
+    </div>
+    
+    <h2><a href="index.html">The AOction House</a><span class="header-divider"> | </span></h2>
+    <h3 class = "listingsToggle"><a id="listToggleButton" href="index.html">List Assets</a></h3>
+    <h3 class = "historyNav"><a href="history.html">History</a></h3>
+
+    <div class="search-container">
+        <input type="text" id="historySearch" placeholder="Search by name or auctionID...">
+    </div>
+
+    <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect</button>
+</div>
+
+
+
+
+<div class="area">
+    <ul class="circles" id="circles-container"></ul>
+</div>
+
+<div class="history-container">
+    <!-- History entries will be populated here -->
+    <div class="pagination-controls">
+        <button id="prevPage">←&nbsp;Prev</button>
+        <button id="nextPage">Next&nbsp;→</button>
+    </div>
+</div>
+<div id="historyDetailsModal" class="modal" style="display: none;"></div>
+
+
+<script type="module" src="history.js"></script>
+<script src="background/AnimatedBackground.js"></script>
+
+
+</body>
+
+</html>

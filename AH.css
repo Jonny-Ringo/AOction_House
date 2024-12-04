@@ -7,6 +7,7 @@
 
 
 body, html {
+    z-index: 2;
     height: 100%;
     width: 100%;
     margin: 0;
@@ -19,8 +20,7 @@ body, html {
 }
 
 .header {
-    width: 100%;
-    padding: 10px 0;
+    width: 100%;    
     display: flex;
     justify-content: center;  /* Center the entire content of the header */
     align-items: center;
@@ -28,24 +28,81 @@ body, html {
     position: relative;  /* Allows absolute positioning for the button */
 }
 
-.header h1 {
-    margin-top: 10px;
+.header h2 {
+    margin-top: 20px;
     margin-bottom: 0;
-    text-align: center;  /* Ensure the text is centered */
+    margin-left: 130px;
+    margin-right: auto;
     font-weight: 200;
-    font-size: 7vh;
+    font-size: 35px;
+    text-decoration: none;
+}
+
+
+.header a {
+    color: inherit;  /* This will keep the link color same as the text */
+    text-decoration: none;  /* This removes the underline */
+}
+
+/* Optional: if you want a hover effect */
+.header a:hover {
+    text-decoration: underline;  /* Adds underline on hover */
+}
+
+/* This ensures the links stay the same color even after being visited */
+.header a:visited {
+    color: inherit;
+}
+
+.header-divider {
+    font-family: Arial, sans-serif;  /* Clean, standard font */
+    font-weight: 100;  /* Make it thinner */
+    font-size: 45px;  /* Make it larger */
+    margin: 0;  /* Add some spacing around it */
+    vertical-align: text-bottom;  /* Align it vertically */
+    color: white;  /* Slightly less bright than text */
+}
+
+.listingsToggle {
+    position: absolute;
+    left: 485px;
+    margin-top: 57px;
+    margin-right: auto;
+    font-weight: 200;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.logo-link {
+    position: absolute; /* Match the logo's absolute positioning */
+    top: 10px; /* Same as the logo's margin-top */
+    left: 25px; /* Same as the logo's margin-left */
+    display: inline-block; /* Ensure the link wraps the content */
+    text-decoration: none; /* Remove underline (if needed) */
+    height: 100%;
+    width: auto;
 }
 
 .mainLogo {
-    height: 10%;
-    position: absolute;
-    margin-top: 10px;
-    margin-left: 25px;
+    height: 100%; /* Maintain the logo's small size */
+    display: block; /* Prevent inline spacing issues */
 }
 
+
 .logo-container {
+    top: 0;
     margin: 0;
     padding: 0;
+}
+
+.historyNav {
+    position: absolute;
+    left: 620px;
+    margin-top: 57px;
+    margin-right: auto;
+    font-weight: 200;
+    font-size: 22px;
+    cursor: pointer;
 }
 
 .connect-button {
@@ -89,6 +146,7 @@ body, html {
     padding: 20px;
     border-radius: 15px;
     background-color: #8c52ff;
+    display: none;
 }
 
 .form-container h2 {
@@ -119,6 +177,32 @@ body, html {
     text-align: left;  /* Center the text inside input fields */
 }
 
+.search-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-family: 'Dumverse';
+    color: #ffffff;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 0;
+    text-decoration: none;
+}
+
+.search-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.search-button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    cursor: pointer;
+}
+
 .button {
     padding: 10px 20px;
     font-size: 26px;
@@ -130,6 +214,7 @@ body, html {
     cursor: pointer;
     transition: background-color 0.3s;
     margin-top: 20px;
+    text-decoration: none;
 }
 
 .button:hover {
@@ -155,6 +240,15 @@ body, html {
     cursor: pointer;
     transition: background-color 0.3s;
     margin-top: 20px;
+}
+
+.bid-section .bidAmountInput {
+    height: 16px;  
+    padding: 10px;  
+    margin-right: 10px;
+    font-size: 16px;  
+    border-radius: 15px;
+    border: solid 1px white;
 }
 
 /* Dropdown Option Styling */
@@ -327,9 +421,48 @@ body, html {
     width: 100%;
 }
 
-.live-auctions h2 {
+.auctions-header {
+
+    display: flex;
+    margin-bottom: 30px;
+}
+
+.auctions-header h2 {
+    justify-content: center;
     font-weight: 200;
     font-size: 4vh;
+    margin: auto; /* Remove default margin to align properly */
+    align-items: center;
+}
+
+.search-container {
+    position: absolute;
+    display: flex;
+    left: 840px;
+    margin-right: auto;
+    top: 35px;
+}
+
+#auctionSearch {
+    padding: 8px 16px;
+    border-radius: 25px;
+    border: none;
+    font-size: 18px;
+    width: 300px;
+    font-family: 'Dumverse';
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+#auctionSearch::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#auctionSearch:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .auction-grid {
@@ -388,15 +521,26 @@ body, html {
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Button styling inside the modal */
 .bid-section {
-    margin-top: 15px;
-    text-align: center;
+    border-bottom: solid 2px white;
 }
+
+.bid-section .bidAmountInput {
+    margin-bottom: 0;
+    height: 16px;  
+    padding: 10px;  
+    margin-right: 10px;
+    font-size: 16px;  
+    border-radius: 15px;
+    border: solid 1px white;
+    font-family: Dumverse;
+}
+
 
 #placeBidButton {
     margin-top: 10px;
-    padding: 10px 20px;
+    margin-bottom: 20px;
+    padding: 10px 35px;
     font-size: 16px;
     color: #ffffff;
     background: linear-gradient(to right, #9cd7ed, #029dd1);
@@ -416,7 +560,10 @@ body, html {
 }
 
 #cancelAuctionButton {
-    margin-top: 15px;
+    margin: auto;
+    width: 95%;
+    margin-top: 0px;
+    margin-bottom: 5px;
     padding: 10px 20px;
     font-size: 16px;
     border: none;
@@ -451,7 +598,23 @@ body, html {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
+.modal-container {
+    background-color: #8c52ff;
+    margin: 15% auto;
+    padding: 5px;
+    border: 1px solid white;
+    width: 960px;
+    max-height: 700px; /* Fixed height for modal */
+    text-align: center;
+    border-radius: 25px;
+    overflow-y: auto;
+}
+
 .modal-content {
+    display: inline-flex;
+}
+
+.modal-dropdown {
     background-color: #8c52ff;
     margin: 15% auto;
     padding: 20px;
@@ -461,15 +624,7 @@ body, html {
     max-height: 700px; /* Fixed height for modal */
     text-align: center;
     overflow: auto;
-}
-
-.modal-content h2 {
-    font-weight: 200;
-}
-
-.modal-content p {
-    font-weight: 200;
-}
+} 
 
 /* Modal close button */
 .modal .close {
@@ -490,13 +645,171 @@ body, html {
     cursor: pointer;
 }
 
-/* Ensure the image fits neatly inside the modal */
-.modal img.auction-image {
-    width: 100%;
-    height: 300px; /* Fixed height for the image */
-    object-fit: contain; /* Ensure the image scales and fits inside the container */
+
+
+.auction-image {
+    margin-right: 0px;
+    margin-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    right: auto;
+    padding: 0%;
+    width: 500px;      /* Set a fixed width */
+    height: 500px;     /* Set a fixed height to ensure a uniform box size */
+    object-fit: contain;  /* Ensure the image fits within the box without being distorted */
     border-radius: 8px;
-    margin-bottom: 15px;
+    border: solid white;
+}
+
+.auction-details h3 {
+    text-decoration: underline;
+    text-align: center;
+    margin-right: 20px;
+    margin-left: 0px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-weight: 200;
+    font-size: 32px;
+}
+
+.auction-details p {
+    font-weight: 200;
+    font-size: 20px;
+}
+
+.auction-box {
+    margin: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 25px;
+    width: auto;
+    height: 85%; /* Allow it to grow fully in height */
+    display: flex;  /* Use flexbox */
+    flex-direction: column; /* Stack children vertically */
+    justify-content: space-between; /* Ensure space is evenly distributed */
+    box-sizing: border-box; /* Make sure padding and border are included in width/height */
+}
+
+.auction-quantity {
+    text-align: center;
+    border-bottom: solid 2px white;
+    margin-top: 0px;
+    margin-bottom: 5px;
+    padding-bottom: 10px;
+}
+
+.auction-price {
+    display: flex;                 /* Enable flexbox layout */
+    justify-content: space-between; /* Push the text to the left and span to the right */
+    align-items: center; 
+    margin-bottom: 5px;          /* Vertically align items in the middle */
+}
+
+.auction-price span {
+    margin-left: 5px;
+    display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+    padding: 7px;
+    background-color: rgba(255, 255, 255, 0.4);
+    text-align: center;            /* Center the text within the span */
+    min-width: 200px; 
+    width: 80;             /* Optional: set a minimum width to control size */
+    border-radius: 8px;    /* Center the text within the box */
+}
+
+.auction-bid {
+    display: flex;                 /* Enable flexbox layout */
+    justify-content: space-between; /* Push the text to the left and span to the right */
+    align-items: center; 
+    margin-bottom: 5px; 
+}
+
+.auction-bid span {
+    margin-left: 5px;
+    display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+    padding: 7px;
+    background-color: rgba(255, 255, 255, 0.4);
+    text-align: center;            /* Center the text within the span */
+    min-width: 200px;              /* Optional: set a minimum width to control size */
+    border-radius: 8px;            /* Optional: give the span rounded corners */
+}
+
+.auction-countdown {
+    width: 100%;
+    text-align: center;
+    margin: auto;
+    padding-bottom: 0;
+    margin-top: 20px;
+    margin-bottom: 0px;
+    border-bottom: solid 2px white;
+}
+
+.countdown-timer {
+    text-align: center;
+    margin: auto;
+    padding-bottom: 0px;
+}
+
+.auction-end {
+    text-align: center;
+    margin: auto;
+}
+
+.last-bidder h3 {
+    text-decoration: underline;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-weight: 200;
+    font-size: 20px;
+}
+
+.last-bidder p {
+    margin-top: 0px;
+    margin-bottom: 5px;
+    padding: 5px;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+}
+
+.bidder-address span a {
+    color: white; /* Keep the link text always white */
+    text-decoration: none; /* Remove the default underline */
+}
+
+.bidder-address span a:hover {
+    text-decoration: underline; /* Show underline on hover */
+}
+
+/* Optional: Override default visited and active link styles */
+.bidder-address span a:visited,
+.bidder-address span a:active {
+    color: white; /* Ensure visited or active state doesn't change color */
+}
+
+.asset-owner {
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.asset-owner span a {
+    color: white; /* Keep the link text always white */
+    text-decoration: none; /* Remove the default underline */
+}
+
+.asset-owner span a:hover {
+    text-decoration: underline; /* Show underline on hover */
+}
+
+/* Optional: Override default visited and active link styles */
+.asset-owner span a:visited,
+.asset-owner span a:active {
+    color: white; /* Ensure visited or active state doesn't change color */
 }
 
 

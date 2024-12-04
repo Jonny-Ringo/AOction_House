@@ -1,0 +1,47 @@
+
+.area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: linear-gradient(to right, #8c52ff, #5ce1e6);
+}
+
+.circles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.circles li {
+    position: absolute;
+    display: block;
+    list-style: none;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+}
+
+.static-circle {
+    animation: none;
+    opacity: 0.5;
+}
+
+.moving-circle {
+    animation: animate 25s linear infinite;
+}
+
+@keyframes animate {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-1000px) rotate(720deg);
+        opacity: 0.2;
+    }
+}
