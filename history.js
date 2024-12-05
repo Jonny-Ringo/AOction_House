@@ -1,4 +1,5 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
+import { knownCollections } from './collections.js';
 
 const auctionProcessId = "JcLv70VyPbCmyjvNrKLiHWKaPfKUxq2w9pRssdGlHBo";
 const historyProcessId = "_26RaTB0V3U2AMW2tU-9RxjzuscRW_4qMgRO27ogYa8";
@@ -563,6 +564,47 @@ function closeHistoryDetails() {
     }
 }
 
+document.getElementById('historySearch').addEventListener('input', async function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('searchDropdown');
+    const collectionsResults = document.getElementById('collectionsResults');
+    
+    if (!searchTerm) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    // Search for matching collections
+    const matchingCollections = knownCollections.filter(collection => 
+        collection.name.toLowerCase().includes(searchTerm)
+    );
+
+    if (matchingCollections.length > 0) {
+        collectionsResults.innerHTML = `
+            <div class="dropdown-section">
+                <h3>Collections</h3>
+                ${matchingCollections.map(collection => `
+                    <div class="collection-item" data-id="${collection.id}">
+                        <span>${collection.name}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        dropdown.style.display = 'block';
+
+        // Add click handlers for collection items
+        document.querySelectorAll('.collection-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const collectionId = item.dataset.id;
+                await searchHistoryByCollection(collectionId);
+                dropdown.style.display = 'none';
+            });
+        });
+    } else {
+        dropdown.style.display = 'none';
+    }
+});
+
 document.getElementById('historySearch').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         performHistorySearch();
@@ -592,6 +634,44 @@ async function performHistorySearch() {
         historyPage = 1;
         totalHistoryPages = Math.ceil(matchedEntries.length / historyPerPage);
         await displayHistory(1, matchedEntries);
+    }
+}
+
+// Collection search function for history
+async function searchHistoryByCollection(collectionId) {
+    try {
+        const signer = createDataItemSigner(window.arweaveWallet);
+        
+        // Fetch collection data
+        const collectionResponse = await dryrun({
+            process: collectionId,
+            tags: [{ name: "Action", value: "Info" }],
+            signer: signer
+        });
+
+        if (collectionResponse && collectionResponse.Messages && collectionResponse.Messages[0]) {
+            const collectionData = JSON.parse(collectionResponse.Messages[0].Data);
+            const collectionAssets = collectionData.Assets || [];
+
+            // Filter history entries based on collection assets
+            const matchedHistory = allHistoryEntries.filter(entry => 
+                collectionAssets.includes(entry.AssetID)
+            );
+
+            // Update display
+            historyPage = 1;
+            totalHistoryPages = Math.ceil(matchedHistory.length / historyPerPage);
+
+            if (matchedHistory.length === 0) {
+                const container = document.querySelector('.history-container');
+                container.innerHTML = '<p class="no-results">No history found for this collection</p>';
+            } else {
+                displayHistory(1, matchedHistory);
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching collection data:", error);
+        showToast("Error fetching collection data");
     }
 }
 

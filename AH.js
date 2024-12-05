@@ -1,4 +1,5 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
+import { knownCollections } from './collections.js';
 
 const auctionProcessId = "JcLv70VyPbCmyjvNrKLiHWKaPfKUxq2w9pRssdGlHBo";
 let walletConnected = false;
@@ -373,10 +374,8 @@ async function displayAuctions(page, forcedAuctions = null) {
 
         auctionThumbnail.innerHTML = `
             <img src="${auctionImage}" alt="${auctionName}" class="thumbnail-image">
-            <h3>${auctionName}</h3>
+            <h3>${auctionName.length > 15 ? auctionName.slice(0, 15) + '...' : auctionName}</h3>
             <p>Current Bid: ${auction.highestBid}</p>
-            <p>Quantity: ${modalQuantity}</p>
-            <p>Seller: ${truncatedSeller}</p>
             <p>End: ${new Date(parseInt(expiry)).toLocaleDateString()} 
                 ${new Date(parseInt(expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -477,6 +476,46 @@ window.addEventListener('hashchange', async () => {
     }
 });
 
+document.getElementById('auctionSearch').addEventListener('input', async function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('searchDropdown');
+    const collectionsResults = document.getElementById('collectionsResults');
+    
+    if (!searchTerm) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    // Search for matching collections
+    const matchingCollections = knownCollections.filter(collection => 
+        collection.name.toLowerCase().includes(searchTerm)
+    );
+
+    if (matchingCollections.length > 0) {
+        collectionsResults.innerHTML = `
+            <div class="dropdown-section">
+                <h3>Collections</h3>
+                ${matchingCollections.map(collection => `
+                    <div class="collection-item" data-id="${collection.id}">
+                        <span>${collection.name}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        dropdown.style.display = 'block';
+
+        // Add click handlers for collection items
+        document.querySelectorAll('.collection-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const collectionId = item.dataset.id;
+                await searchByCollection(collectionId);
+                dropdown.style.display = 'none';
+            });
+        });
+    } else {
+        dropdown.style.display = 'none';
+    }
+});
 
 document.getElementById('auctionSearch').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
@@ -525,6 +564,46 @@ async function performSearch() {
         document.getElementById('paginationControls').innerHTML = '';
     } else {
         displayAuctions(1, matchedAuctions);
+    }
+}
+
+// Collection search function
+async function searchByCollection(collectionId) {
+    try {
+        const signer = createDataItemSigner(window.arweaveWallet);
+        
+        // Fetch collection data
+        const collectionResponse = await dryrun({
+            process: collectionId,
+            tags: [{ name: "Action", value: "Info" }],
+            signer: signer
+        });
+
+        if (collectionResponse && collectionResponse.Messages && collectionResponse.Messages[0]) {
+            const collectionData = JSON.parse(collectionResponse.Messages[0].Data);
+            const collectionAssets = collectionData.Assets || [];
+
+            // Filter auctions based on collection assets
+            const matchedAuctions = allLiveAuctions.filter(auction => 
+                collectionAssets.includes(auction.AssetID)
+            );
+
+            // Update display
+            currentDisplayedAuctions = matchedAuctions;
+            auctionPage = 1;
+            totalAuctionPages = Math.ceil(matchedAuctions.length / auctionsPerPage);
+
+            if (matchedAuctions.length === 0) {
+                const auctionGrid = document.getElementById('auctionGrid');
+                auctionGrid.innerHTML = '<p class="no-results">No auctions found for this collection</p>';
+                document.getElementById('paginationControls').innerHTML = '';
+            } else {
+                displayAuctions(1, matchedAuctions);
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching collection data:", error);
+        showToast("Error fetching collection data");
     }
 }
 

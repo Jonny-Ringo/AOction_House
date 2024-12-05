@@ -422,17 +422,18 @@ body, html {
 }
 
 .auctions-header {
-
     display: flex;
+    justify-content: center; /* Center the content horizontally */
     margin-bottom: 30px;
+    margin-right: auto;
+    margin-left: auto;
 }
 
 .auctions-header h2 {
-    justify-content: center;
     font-weight: 200;
     font-size: 4vh;
-    margin: auto; /* Remove default margin to align properly */
     align-items: center;
+    text-align: center;
 }
 
 .search-container {
@@ -465,6 +466,37 @@ body, html {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #8c52ff;
+
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.dropdown-section h3 {
+    padding: 8px 12px;
+    margin: 0;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border-bottom: 1px solid #ddd;
+    font-weight: 200;
+    border-radius: 20px;
+}
+
+.collection-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 20px;
+}
+
+.collection-item:hover {
+    box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.5);
+}
+
 .auction-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -480,8 +512,8 @@ body, html {
     background-color: #8c52ff;
     border-radius: 8px;
     padding: 15px;
-    width: 200px;
-    height: 350px; /* Static height for the thumbnail */
+    width: 210px;
+    height: 300px; /* Static height for the thumbnail */
     transition: transform 0.3s, box-shadow 0.3s;
     cursor: pointer;
     display: flex;

@@ -189,30 +189,35 @@ body, html {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.search-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    font-family: 'Dumverse';
-    color: #ffffff;
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #8c52ff;
+
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.dropdown-section h3 {
+    padding: 8px 12px;
+    margin: 0;
     background: linear-gradient(to right, #9cd7ed, #029dd1);
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    margin-top: 0;
-    text-decoration: none;
+    border-bottom: 1px solid #ddd;
+    font-weight: 200;
+    border-radius: 20px;
 }
 
-.search-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+.collection-item {
+    padding: 8px 12px;
     cursor: pointer;
+    border-radius: 20px;
 }
 
-.search-button:active {
-    transform: scale(0.95);  /* Slightly shrink the button */
-    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
-    cursor: pointer;
+.collection-item:hover {
+    box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.5);
 }
 
 .history-container {
