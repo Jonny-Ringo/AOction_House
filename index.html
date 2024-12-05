@@ -60,8 +60,13 @@
 
     <div class="search-container">
         <input type="text" id="auctionSearch" placeholder="Search by name or auctionID...">
+        <div class="search-icon"></div>
         <div id="searchDropdown" class="search-dropdown">
             <div id="collectionsResults"></div>
+        </div>
+        <div class="search-overlay">
+            <input type="text" id="auctionSearchOverlay" placeholder="Search auctions...">
+            <div class="close-icon"></div>
         </div>
     </div>
     <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect</button>

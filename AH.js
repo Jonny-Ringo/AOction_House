@@ -524,7 +524,8 @@ document.getElementById('auctionSearch').addEventListener('keypress', function(e
 });
 
 async function performSearch() {
-    const searchTerm = document.getElementById('auctionSearch').value.toLowerCase().trim();
+    const searchTerm = document.getElementById('auctionSearch').value.toLowerCase().trim() || 
+                       document.getElementById('auctionSearchOverlay').value.toLowerCase().trim();
 
     // If search is empty, reset to original state
     if (!searchTerm) {
@@ -606,6 +607,53 @@ async function searchByCollection(collectionId) {
         showToast("Error fetching collection data");
     }
 }
+
+document.getElementById('auctionSearchOverlay').addEventListener('input', async function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('searchDropdown');
+    const collectionsResults = document.getElementById('collectionsResults');
+
+    if (!searchTerm) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    // Search for matching collections
+    const matchingCollections = knownCollections.filter(collection => 
+        collection.name.toLowerCase().includes(searchTerm)
+    );
+
+    if (matchingCollections.length > 0) {
+        collectionsResults.innerHTML = `
+            <div class="dropdown-section">
+                <h3>Collections</h3>
+                ${matchingCollections.map(collection => `
+                    <div class="collection-item" data-id="${collection.id}">
+                        <span>${collection.name}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        dropdown.style.display = 'block';
+
+        // Add click handlers for collection items
+        document.querySelectorAll('.collection-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const collectionId = item.dataset.id;
+                await searchByCollection(collectionId);
+                dropdown.style.display = 'none';
+            });
+        });
+    } else {
+        dropdown.style.display = 'none';
+    }
+});
+
+document.getElementById('auctionSearchOverlay').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
 
 // Function to fetch auction name and image using AssetID and log AuctionID
 // Function to dryrun and fetch auction name (but use AssetID directly for the image URL)
@@ -1329,7 +1377,17 @@ async function resetAssetSelection() {
 }
 
 
+const searchIcon = document.querySelector('.search-icon');
+const searchOverlay = document.querySelector('.search-overlay');
+const closeIcon = document.querySelector('.close-icon');
 
+searchIcon.addEventListener('click', () => {
+    searchOverlay.classList.add('active');
+});
+
+closeIcon.addEventListener('click', () => {
+    searchOverlay.classList.remove('active');
+});
 
 
 

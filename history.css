@@ -116,6 +116,7 @@ body, html {
     cursor: pointer;
     transition: background-color 0.3s;
     position: absolute;
+    top: 30px;
     right: 50px;  /* Position the button to the right */
 }
 
@@ -470,4 +471,53 @@ body, html {
 .history-end {
     text-align: center;
     margin: auto;
+}
+
+/* Add this to your CSS file */
+.toast-message {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 10000;
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Ensure it's hidden initially */
+    transition: opacity 0.5s ease-in-out, visibility 0.5s;
+}
+
+.toast-show {
+    opacity: 1; /* Fade in */
+    visibility: visible; /* Show the element */
+}
+
+.toast-hide {
+    opacity: 0; /* Fade out */
+    visibility: hidden; /* Hide the element */
+}
+
+
+
+@media (min-width: 1300px) and (max-width: 1440px) {
+
+    .form-container {
+        max-width: 50%; /* Maintain layout */
+    }
+
+    .search-container {
+   
+        display: flex;
+        left: 750px;
+        margin-right: auto;
+        top: 35px;
+    }
+
+    #auctionSearch {
+        font-size: 16px;
+        width: 235px;
+    }
+
 }

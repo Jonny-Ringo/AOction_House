@@ -112,7 +112,7 @@ async function getBazARProfile() {
         const signer = createDataItemSigner(window.arweaveWallet);
 
         const profileResponse = await dryrun({
-            process: "SNy4m-DrqxWl01YqGM4sxI8qCni-58re8uuJLvZPypY", // BazAR profile process ID
+            process: "SNy4m-DrqxWl01YqGM4sxI8qCni-58re8uuJLvZPypY",
             data: JSON.stringify({ Address: walletAddress }),
             tags: [{ name: "Action", value: "Get-Profiles-By-Delegate" }],
             anchor: "1234",
@@ -121,23 +121,22 @@ async function getBazARProfile() {
 
         console.log("Profile retrieval response:", profileResponse);
 
-        // Parse the profile data
         if (profileResponse && profileResponse.Messages && profileResponse.Messages[0] && profileResponse.Messages[0].Data) {
             const profileData = JSON.parse(profileResponse.Messages[0].Data);
             if (profileData && profileData[0] && profileData[0].ProfileId) {
                 profileId = profileData[0].ProfileId;
-                localStorage.setItem('profileId', profileId);  // Save profileId to localStorage
+                localStorage.setItem('profileId', profileId);
                 console.log("Retrieved Profile ID:", profileId);
-            } else {
-                throw new Error("Profile ID not found in the response.");
+                await fetchOwnedAssets();
+                return; // Exit the function if the profile is found
             }
-        } else {
-            throw new Error("No valid data found in the response.");
         }
 
-        await fetchOwnedAssets(); // Fetch the user's assets once the profile is found
+        // If the profile is not found, throw an error
+        throw new Error("No valid data found in the response.");
     } catch (error) {
         console.error("Error retrieving BazAR profile:", error);
+        showToast(`Profile not found. Please create a profile at <a href="https://bazar.arweave.net/" target="_blank" style="color: #ffffff; text-decoration: underline;">BazAR</a>.`);
     }
 }
 
@@ -673,6 +672,25 @@ async function searchHistoryByCollection(collectionId) {
         console.error("Error fetching collection data:", error);
         showToast("Error fetching collection data");
     }
+}
+
+// Show toast notification
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-message toast-show';  // Add initial classes for visibility
+    toast.innerHTML = message;
+    document.body.appendChild(toast);
+
+    // Set a timeout to remove the toast after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('toast-show');
+        toast.classList.add('toast-hide');
+
+        // After the fade-out animation, remove the toast from the DOM
+        setTimeout(() => {
+            toast.remove();
+        }, 700);  // Match this to the fade-out duration (0.5s)
+    }, 4000);  // Show the toast for 3 seconds before starting the fade-out
 }
 
 window.connectWallet = connectWallet;

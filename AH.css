@@ -116,6 +116,7 @@ body, html {
     cursor: pointer;
     transition: background-color 0.3s;
     position: absolute;
+    top: 30px;
     right: 50px;  /* Position the button to the right */
 }
 
@@ -903,24 +904,130 @@ body, html {
     }
 }
 
-/* Large Devices (Desktops, 900px - 1200px) */
-@media (min-width: 900px) and (max-width: 1199px) {
-    .container {
-        width: 75%;
-    }
+
+@media (min-width: 1300px) and (max-width: 1440px) {
 
     .form-container {
-        max-width: 80%; /* Maintain layout */
+        max-width: 50%; /* Maintain layout */
     }
 
-    .form-group input, .form-group select {
+    .search-container {
+   
+        display: flex;
+        left: 750px;
+        margin-right: auto;
+        top: 35px;
+    }
+
+    #auctionSearch {
         font-size: 16px;
+        width: 235px;
     }
 
-    #assetDropdown {
-        margin-left: 40%; /* Adjust to maintain alignment */
+}
+
+.search-icon {
+    display: none;
+}
+
+.search-overlay {
+    display: none;
+}
+
+@media (min-width: 900px) and (max-width: 1299px) {
+
+    .search-container {
+   
+        display: flex;
+        left: 750px;
+        margin-right: auto;
+        top: 35px;
+        
+    }
+
+    #auctionSearch {
+        display: none;
+    }
+
+    .search-icon {
+        display: block;
+        width: 30px;
+        height: 30px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 10%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #auctionSearchOverlay {
+        width: 80%;
+        max-width: 600px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+
+    }
+
+    #auctionSearch::placeholder {
+        color: white;
+        opacity: 0.7;
+        src: url('./Dumverse_Font.ttf') format('truetype');
+    }
+
+    .search-dropdown {
+        position: absolute;
+        top: 5vh;
+        left: auto;
+        right: auto;
+        align-items: center;
+        justify-content: center;
+        width: 250px;
+        background: #8c52ff;
+    
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
     }
 }
+
 
 
 
