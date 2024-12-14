@@ -59,16 +59,19 @@
     <h3 class = "historyNav"><a href="history.html">History</a></h3>
 
     <div class="search-container">
-        <input type="text" id="auctionSearch" placeholder="Search by name or auctionID...">
-        <div class="search-icon"></div>
+        <input type="text" id="auctionSearch" placeholder="Search">
+        
+
         <div id="searchDropdown" class="search-dropdown">
             <div id="collectionsResults"></div>
         </div>
+
+    </div>
+    <div class="search-icon"></div>
         <div class="search-overlay">
-            <input type="text" id="auctionSearchOverlay" placeholder="Search auctions...">
+            <input type="text" class="auctionSearchOverlay" id="auctionSearchOverlay" placeholder="Search auctions...">
             <div class="close-icon"></div>
         </div>
-    </div>
     <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect</button>
 </div>
     
@@ -79,30 +82,31 @@
 
 <div class="container">
     <div class="form-container">
-        <h2>List Assets For Auction</h2>
             <div id="assetDropdown" class="custom-dropdown">
                 <!-- Custom dropdown options will be populated here -->
                 <div class="selected">
                     <span>Your Collection</span>
                 </div>
-                <div class="dropdown-options" style="display: none; border: 1px solid #ccc; position: absolute; z-index: 1000; background-color: #fff; max-height: 200px; overflow-y: auto;">
+                <div class="dropdown-options">
                     <!-- Options will be dynamically inserted here -->
                 </div>
             </div>
 
         <div class="form-group">
-            <label for="price">Starting Price</label>
-            <input type="number" id="price" placeholder="Initial price in wAR" required>
+            <label class="start-price-label" for="price">Starting Price:</label>
+            <input type="number" id="price" required>
         </div>
         <div class="form-group">
-            <label id="quantityHeader" for="quantity">Quantity (Available: 0)</label>
-            <input type="number" id="quantity" placeholder="Quantity to list" required>
+            <label class="quantity-label" id="quantityHeader" for="quantity">Quantity:</label>
+
+            <input type="number" id="quantity" required>
+            <div class="quantity-label2"><label id="quantityHeader1" for="quantity">(Available: -)</label></div>
         </div>
         
         
         <div class="form-group">
-            <label for="durationDropdown">Auction Length</label>
-            <select id="durationDropdown">
+            <label class="auction-length-label" for="durationDropdown">Auction Length:</label>
+            <select class="durationDropdown" id="durationDropdown">
                 <option value="1">1 Day</option>
                 <option value="3">3 Days</option>
                 <option value="7">7 Days</option>
@@ -113,9 +117,9 @@
     </div>
 
 <!-- Asset Selection Modal -->
-<div id="assetSelectionModal" class="modal asset-selection-modal">
+<div id="assetSelectionModal" class="asset-selection-modal">
     <div class="modal-dropdown">
-        <span class="close">&times;</span> <!-- Specific class for the close button -->
+        <span class="close">&times;</span>
         <h2>Select an Asset</h2>
 
         <div class="asset-list" id="assetList">
@@ -164,6 +168,8 @@
     }
 </script>
 <script src="background/AnimatedBackground.js"></script>
+
+
 </body>
 </html>
 

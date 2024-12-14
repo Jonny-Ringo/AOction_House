@@ -20,19 +20,17 @@ body, html {
 }
 
 .header {
-    width: 100%;    
+    width: 100%;
     display: flex;
-    justify-content: center;  /* Center the entire content of the header */
     align-items: center;
-    
-    position: relative;  /* Allows absolute positioning for the button */
+    position: relative;
+    justify-content: flex-start; /* Changed to align items to the start */
 }
 
 .header h2 {
     margin-top: 20px;
     margin-bottom: 0;
     margin-left: 130px;
-    margin-right: auto;
     font-weight: 200;
     font-size: 35px;
     text-decoration: none;
@@ -163,9 +161,10 @@ body, html {
 .search-container {
     position: absolute;
     display: flex;
-    left: 840px;
-    margin-right: auto;
+    left: 50%;
+    transform: translateX(-50%);
     top: 35px;
+    z-index: 1500;
 }
 
 #historySearch {
@@ -199,7 +198,7 @@ body, html {
 
     border-radius: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    z-index: 1000;
+
 }
 
 .dropdown-section h3 {
@@ -278,11 +277,21 @@ body, html {
     padding: 0 20px;
 }
 
+.history-title.loading {
+    color: #888;
+    background: transparent;
+    animation: loading 1.5s infinite;
+}
 
+@keyframes loading {
+    to {
+        background-position: -200% 0;
+    }
+}
 
 /* Pagination buttons */
 .pagination-controls {
-    margin-top: 25px;
+    margin-top: 20px;
     display: flex;
     justify-content: space-between;
     font-family: 'Dumverse';
@@ -500,8 +509,21 @@ body, html {
 }
 
 
+@media (max-width: 1725px) {
 
-@media (min-width: 1300px) and (max-width: 1440px) {
+
+    .search-container {
+   
+        display: flex;
+        left: 60%;
+        transform: translateX(-40%);
+        top: 35px;
+    }
+
+
+}
+
+@media (min-width: 1386px) and (max-width: 1440px) {
 
     .form-container {
         max-width: 50%; /* Maintain layout */
@@ -510,14 +532,1030 @@ body, html {
     .search-container {
    
         display: flex;
-        left: 750px;
-        margin-right: auto;
+        left: 60%;
+        transform: translateX(-40%);
         top: 35px;
     }
 
-    #auctionSearch {
+    #historySearch {
         font-size: 16px;
         width: 235px;
+    }
+
+}
+
+.search-icon {
+    display: none;
+}
+
+.search-overlay {
+    display: none;
+}
+
+@media (min-width: 1000px) and (max-width: 1385px) {
+
+    .search-container {
+   
+        display: flex;
+        left: 20%;
+        transform: translateX(-80%);
+        top: 40px;
+        
+    }
+
+
+    #historySearch {
+        display: none;
+    }
+
+    .search-icon {
+        position: absolute;
+        display: block;
+        left: 720px;
+        top: 40px;
+        right: auto;
+        width: 30px;
+        height: 30px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #historySearchOverlay {
+        width: 80%;
+        max-width: 600px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+        font-family: 'Dumverse';
+        src: url('./Dumverse_Font.ttf') format('truetype');
+
+    }
+
+    .search-dropdown {
+        position: absolute;
+        display: flex;
+        top: 35px;
+        min-width: 675px;
+        background: #8c52ff;
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+}
+
+@media (min-width: 860px) and (max-width: 999px) {
+
+    .search-container {
+   
+        display: flex;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 40px;
+        
+    }
+
+    #historySearch {
+        display: none;
+    }
+
+    .header {
+        justify-content: center;
+    }
+    
+    .header h2 {
+        margin-left: 0; /* Remove the left margin at smaller screens */
+        text-align: center;
+        transform: scale(.9);
+    }
+
+    .listingsToggle {
+        margin-top: 135px;
+        position: absolute;  /* Assuming these need absolute positioning */
+        left: calc(50% - 90px);  /* Adjust this value to set desired spacing */
+        transform: translateX(-50%);
+    }
+    
+    .historyNav {
+        margin-top: 135px;
+        position: absolute;
+        left: calc(50% + 100px);  /* Mirror of the listings position */
+        transform: translateX(-50%);
+    }
+
+    .header-divider {
+        display: none;
+    }
+
+    .connect-button {
+        right: 5px;  /* Position the button to the right */
+        transform: scale(.65);
+        top: 18px;
+    }
+
+    .connect-button:hover {
+        transform: scale(.75);
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+    }
+    
+    .connect-button:active {
+        transform: scale(.60);  /* Slightly shrink the button */
+        box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+        cursor: pointer;
+    }
+
+    .search-icon {
+        position: absolute;
+        display: block;
+        top: 25px;
+        transform: scale(.85);
+        right: 150px;
+        left: auto;
+        width: 30px;
+        height: 30px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #historySearchOverlay {
+        width: 70%;
+        max-width: 600px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+        font-family: 'Dumverse';
+        src: url('./Dumverse_Font.ttf') format('truetype');
+
+    }
+
+    .search-dropdown {
+        position: relative;
+        display: flex;
+        left: 50%;
+        top: 20px;  /* Adjust this value to position below the search input */
+        transform: translateX(-50%);
+        min-width: 620px;
+        background: #8c52ff;
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+}
+
+@media (min-width: 700px) and (max-width: 859px) {
+
+    .search-container {
+   
+        display: flex;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 40px;
+        
+    }
+
+    #historySearch {
+        display: none;
+    }
+
+    .header {
+        justify-content: center;
+    }
+    
+    .header h2 {
+        margin-left: 0; /* Remove the left margin at smaller screens */
+        text-align: center;
+        transform: scale(.9);
+    }
+
+    .listingsToggle {
+        margin-top: 135px;
+        position: absolute;  /* Assuming these need absolute positioning */
+        left: calc(50% - 90px);  /* Adjust this value to set desired spacing */
+        transform: translateX(-50%);
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        min-height: 100vh;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .modal-container {
+        justify-content: center;
+        align-items: center;
+        transform: scale(0.75);
+        width: 600px;
+        min-height: fit-content; /* Add this */
+        background-color: #8c52ff;
+        text-align: center;
+        border-radius: 25px;
+        margin: 15% auto;
+    }
+    
+    .modal-content {
+        display: inline-flex;
+        flex-direction: column;
+
+    }
+
+    .modal .close {
+        position: absolute;
+        top: 20px;  /* Adjust these values as needed */
+        right: 20px;
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        /* Remove float since we're using absolute positioning */
+        /* float: right; */
+    }
+    
+    .historyNav {
+        margin-top: 135px;
+        position: absolute;
+        left: calc(50% + 100px);  /* Mirror of the listings position */
+        transform: translateX(-50%);
+    }
+
+    .header-divider {
+        display: none;
+    }
+
+    .history-end {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .connect-button {
+        right: 5px;  /* Position the button to the right */
+        transform: scale(.65);
+        top: 18px;
+    }
+
+    .connect-button:hover {
+        transform: scale(.75);
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+    }
+    
+    .connect-button:active {
+        transform: scale(.60);  /* Slightly shrink the button */
+        box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+        cursor: pointer;
+    }
+
+    .search-icon {
+        position: absolute;
+        display: block;
+        top: 25px;
+        transform: scale(.85);
+        right: 150px;
+        left: auto;
+        width: 30px;
+        height: 30px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #historySearchOverlay {
+        width: 70%;
+        max-width: 600px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+        font-family: 'Dumverse';
+        src: url('./Dumverse_Font.ttf') format('truetype');
+
+    }
+
+    .search-dropdown {
+        position: relative;
+        display: flex;
+        left: 50%;
+        top: 20px;  /* Adjust this value to position below the search input */
+        transform: translateX(-50%);
+        min-width: 620px;
+        background: #8c52ff;
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+}
+
+@media (min-width: 580px) and (max-width: 699px) {
+    .pagination-controls {
+        transform: scale(.75);
+    
+    
+    }
+    
+    .pagination-controls button:hover {
+        transform: scale(1.05);
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .pagination-controls button:active {
+        transform: scale(.95);  /* Slightly shrink the button */
+        box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+    }
+}
+
+@media (min-width: 300px) and (max-width: 579px) {
+/* Pagination buttons */
+.pagination-controls {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Dumverse';
+    color: white;
+    font-size: 13px;
+
+}
+
+.pagination-controls button {
+    padding: 4px 8px;
+    font-family: 'Dumverse';
+    font-size: 13px;
+    color: white;
+    background: linear-gradient(to right, #9cd7ed, #029dd1);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.pagination-controls button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-controls button:active {
+    transform: scale(0.95);  /* Slightly shrink the button */
+    box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+}
+    
+
+}
+
+@media (min-width: 550px) and (max-width: 699px) {
+
+
+
+    .search-container {
+   
+        display: flex;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 40px;
+        
+    }
+
+    #historySearch {
+        display: none;
+    }
+
+    .header h2 {
+        padding: 0px;
+        margin-top: 20px;
+        margin-left: 85px;
+        font-weight: 200;
+        font-size: 20px;
+        transform: scale(1);
+    }
+
+    .listingsToggle {
+        margin-top: 135px;
+        position: absolute;  /* Assuming these need absolute positioning */
+        left: calc(50% - 90px);  /* Adjust this value to set desired spacing */
+        transform: translateX(-50%);
+    }
+
+    
+    .modal-container {
+        transform: scale(1);
+        width: 300px;
+        margin-top: 15%;
+        justify-content: center;
+        align-items: center;
+        height: fit-content;
+        box-sizing: border-box;
+    }
+    
+
+    
+    .modal-content {
+        display: inline-flex;
+        flex-direction: column;
+
+    }
+
+    .asset-owner {
+        margin-right: auto;
+        margin-left: auto;
+        margin-top: 5px;
+        margin-bottom: 2.5px;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-size: 10px;
+    }
+
+    .history-box {
+        margin: 5px;
+        padding: 5px;
+        background-color: rgba(0, 0, 0, 0.4);
+        border-radius: 25px;
+        width: auto;
+        height: 85%; /* Allow it to grow fully in height */
+        display: flex;  /* Use flexbox */
+        flex-direction: column; /* Stack children vertically */
+        justify-content: space-between; /* Ensure space is evenly distributed */
+        box-sizing: border-box; /* Make sure padding and border are included in width/height */
+    }
+
+    .history-details p {
+        font-size: 10px;
+
+    }
+
+    .history-details h3 {
+        text-decoration: underline;
+        text-align: center;
+        margin-right: 10px;
+        margin-left: 0px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-weight: 200;
+        font-size: 16px;
+    }
+
+    .asset-image {
+        margin-right: 0px;
+        margin-left: 10px;
+        margin-top: 5px;
+        margin-bottom: 0px;
+        right: auto;
+        padding: 0%;
+        width: 250px;      /* Set a fixed width */
+        height: 250px;     /* Set a fixed height to ensure a uniform box size */
+        object-fit: contain;  /* Ensure the image fits within the box without being distorted */
+        border-radius: 8px;
+        border: solid white;
+
+    }
+
+    .history-price p{
+        margin-right: 10px;
+        justify-content: none;
+    }
+
+    .history-price span {
+        right: 20px;
+        display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+        padding: 3.5px;
+        background-color: rgba(255, 255, 255, 0.4);
+        text-align: center;            /* Center the text within the span */
+        min-width: 100px; 
+        border-radius: 8px;    /* Center the text within the box */
+    }
+
+    .history-bid span {
+        margin-left: 0px;
+        display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+        padding: 3.5px;
+        background-color: rgba(255, 255, 255, 0.4);
+        text-align: center;            /* Center the text within the span */
+        min-width: 100px;              /* Optional: set a minimum width to control size */
+        border-radius: 8px;            /* Optional: give the span rounded corners */
+    }
+
+
+    .modal .close {
+        position: absolute;
+        top: 5px;  /* Adjust these values as needed */
+        right: 20px;
+        color: white;
+        font-size: 26px;
+        font-weight: bold;
+    }
+
+    
+    .historyNav {
+        margin-top: 135px;
+        position: absolute;
+        left: calc(50% + 100px);  /* Mirror of the listings position */
+        transform: translateX(-50%);
+    }
+
+    .header {
+        margin-bottom: 20px;
+    }
+
+    .header-divider {
+        display: none;
+    }
+
+    .connect-button {
+        transform: scale(1);
+        font-family: 'Dumverse';
+        padding: 4px 8px;
+        font-size: 13px;
+        color: #ffffff;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        position: absolute;
+        top: 20px;
+        right: 15px;  /* Position the button to the right */
+    }
+
+    .connect-button:hover {
+        transform: scale(.1.05);
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+    }
+    
+    .connect-button:active {
+        transform: scale(.95);  /* Slightly shrink the button */
+        box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.3);  /* Add an inset shadow to make it look pressed */
+        cursor: pointer;
+    }
+
+    .search-icon {
+        position: absolute;
+        display: block;
+        top: 20px;
+        right: 110px;
+        left: auto;
+        width: 25px;
+        height: 25px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100px;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #historySearchOverlay {
+        width: 70vw;
+        max-width: 600px;
+        margin-top: 30px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+        font-family: 'Dumverse';
+        src: url('./Dumverse_Font.ttf') format('truetype');
+
+    }
+
+    .search-dropdown {
+        position: relative;
+        display: flex;
+        left: 50%;
+        top: 20px;  /* Adjust this value to position below the search input */
+        transform: translateX(-50%);
+        width: 70vw;
+        background: #8c52ff;
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 35px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+
+
+}
+
+
+@media (min-width: 300px) and (max-width: 549px) {
+
+    .container {
+        width: auto;
+        margin-left: 0 auto;
+        padding: 0px;
+        left: 0px;
+    }
+
+    .search-container {
+   
+        display: flex;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 40px;
+        
+    }
+
+    #historySearch {
+        display: none;
+    }
+
+    .logo-link {
+        position: absolute; /* Match the logo's absolute positioning */
+        top: 15px; /* Same as the logo's margin-top */
+        left: 15px; /* Same as the logo's margin-left */
+        display: inline-block; /* Ensure the link wraps the content */
+        text-decoration: none; /* Remove underline (if needed) */
+        height: 75%;
+        width: auto;
+    }
+    
+    .header h2 {
+        padding: 0px;
+        margin-top: 20px;
+        margin-left: 60px;
+        font-weight: 200;
+        font-size: 20px;
+        transform: scale(1);
+    }
+
+    .listingsToggle {
+        margin-top: 135px;
+        position: absolute;  /* Assuming these need absolute positioning */
+        left: calc(50% - 90px);  /* Adjust this value to set desired spacing */
+        transform: translateX(-50%);
+    }
+
+    .modal .close {
+        position: absolute;
+        top: 5px;  /* Adjust these values as needed */
+        right: 20px;
+        color: white;
+        font-size: 26px;
+        font-weight: bold;
+    }
+
+    .modal-container {
+        transform: scale(1);
+        width: 300px;
+        margin-top: 15%;
+        justify-content: center;
+        align-items: center;
+        height: fit-content;
+        box-sizing: border-box;
+    }
+    
+
+    
+    .modal-content {
+        display: inline-flex;
+        flex-direction: column;
+
+    }
+
+    .asset-owner {
+        margin-right: auto;
+        margin-left: auto;
+        margin-top: 5px;
+        margin-bottom: 2.5px;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-size: 10px;
+    }
+
+    .history-box {
+        margin: 5px;
+        padding: 5px;
+        background-color: rgba(0, 0, 0, 0.4);
+        border-radius: 25px;
+        width: auto;
+        height: 85%; /* Allow it to grow fully in height */
+        display: flex;  /* Use flexbox */
+        flex-direction: column; /* Stack children vertically */
+        justify-content: space-between; /* Ensure space is evenly distributed */
+        box-sizing: border-box; /* Make sure padding and border are included in width/height */
+    }
+
+    .history-details p {
+        font-size: 10px;
+
+    }
+
+    .history-details h3 {
+        text-decoration: underline;
+        text-align: center;
+        margin-right: 10px;
+        margin-left: 0px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-weight: 200;
+        font-size: 16px;
+    }
+
+    .asset-image {
+        margin-right: 0px;
+        margin-left: 10px;
+        margin-top: 5px;
+        margin-bottom: 0px;
+        right: auto;
+        padding: 0%;
+        width: 250px;      /* Set a fixed width */
+        height: 250px;     /* Set a fixed height to ensure a uniform box size */
+        object-fit: contain;  /* Ensure the image fits within the box without being distorted */
+        border-radius: 8px;
+        border: solid white;
+
+    }
+
+    .history-price p{
+        margin-right: 10px;
+        justify-content: none;
+    }
+
+    .history-price span {
+        right: 20px;
+        display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+        padding: 3.5px;
+        background-color: rgba(255, 255, 255, 0.4);
+        text-align: center;            /* Center the text within the span */
+        min-width: 100px; 
+        border-radius: 8px;    /* Center the text within the box */
+    }
+    
+    .history-bid span {
+        margin-left: 0px;
+        display: inline-block;         /* Ensure the span behaves like a block but stays inline */
+        padding: 3.5px;
+        background-color: rgba(255, 255, 255, 0.4);
+        text-align: center;            /* Center the text within the span */
+        min-width: 100px;              /* Optional: set a minimum width to control size */
+        border-radius: 8px;            /* Optional: give the span rounded corners */
+    }
+
+    .historyNav {
+        margin-top: 135px;
+        position: absolute;
+        left: calc(50% + 100px);  /* Mirror of the listings position */
+        transform: translateX(-50%);
+    }
+
+    .header {
+        margin-bottom: 20px;
+    }
+
+    .header-divider {
+        display: none;
+    }
+
+    .connect-button {
+        width: 25px;
+        height: 25px;
+        padding: 0;
+        border-radius: 50%;
+        border: 5px solid white;
+        right: 25px;
+        top: 20px;
+        font-size: 0; /* Hide text */
+        background: #ff4444; /* Red dot when disconnected */
+    }
+
+    .connect-button.connected {
+        background: #44ff44; /* Green dot when connected */
+    }
+
+    .connect-button:hover {
+        transform: scale(1.05);
+    }
+
+    .connect-button:active {
+        transform: scale(0.9);
+    }
+
+    .search-icon {
+        position: absolute;
+        display: block;
+        top: 20px;
+        right: 60px;
+        left: auto;
+        width: 25px;
+        height: 25px;
+        background-image: url('search_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .search-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100px;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 500;
+        font-family: 'Dumverse';
+        
+    }
+
+    .search-overlay.active {
+        display: flex;
+    }
+
+    #historySearchOverlay {
+        width: 60%;
+        max-width: 600px;
+        margin-top: 30px;
+        padding: 12px 40px 12px 16px;
+        font-size: 20px;
+        border-radius: 25px;
+        font-family: 'Dumverse';
+        src: url('./Dumverse_Font.ttf') format('truetype');
+
+    }
+
+    .search-dropdown {
+        position: relative;
+        display: flex;
+        left: 50%;
+        top: 20px;  /* Adjust this value to position below the search input */
+        transform: translateX(-50%);
+        width: 70vw;
+        background: #8c52ff;
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+    
+    .dropdown-section h3 {
+        padding: 8px 12px;
+        margin: 0;
+        background: linear-gradient(to right, #9cd7ed, #029dd1);
+        border-bottom: 1px solid #ddd;
+        font-weight: 200;
+        border-radius: 20px;
+    }
+
+    .close-icon {
+        position: absolute;
+        top: 35px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background-image: url('close_icon.png');
+        background-size: cover;
+        cursor: pointer;
+    }
+
+    .history-title {
+        font-size: 16px;
+    }
+
+    .price-info {
+        font-size: 10px;
     }
 
 }

@@ -4,8 +4,8 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-AuctionHouse = "JcLv70VyPbCmyjvNrKLiHWKaPfKUxq2w9pRssdGlHBo"
-MAX_HISTORY_RECORDS = 50
+AuctionHouse = "75aoYp-U8k3VwS1PBnz0y8gVDuj-22rfyPFXDpO0lVo"
+MAX_HISTORY_RECORDS = 2000
 
 HISTORY = [[
     CREATE TABLE IF NOT EXISTS HistoryCatalog (

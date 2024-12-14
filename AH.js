@@ -1,7 +1,7 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
 import { knownCollections } from './collections.js';
 
-const auctionProcessId = "JcLv70VyPbCmyjvNrKLiHWKaPfKUxq2w9pRssdGlHBo";
+const auctionProcessId = "75aoYp-U8k3VwS1PBnz0y8gVDuj-22rfyPFXDpO0lVo";
 let walletConnected = false;
 let profileId = null;
 let selectedAssetId = null;
@@ -12,6 +12,7 @@ let currentDisplayedAuctions = null;
 
 async function connectWallet() {
     const connectWalletButton = document.getElementById("connectWalletButton");
+    const isMobile = window.innerWidth <= 549;
 
     // Check if already connected, then disconnect
     if (walletConnected) {
@@ -28,8 +29,9 @@ async function connectWallet() {
             if (assetDropdown) {
                 assetDropdown.innerHTML = "<span>Your Collection</span>";
             }
-            fetchOwnedAssets()
-            connectWalletButton.textContent = "Connect";
+            fetchOwnedAssets();
+            connectWalletButton.classList.remove('connected');
+            connectWalletButton.textContent = isMobile ? "" : "Connect";
             return;
         } catch (error) {
             console.error("Error disconnecting wallet:", error);
@@ -55,16 +57,14 @@ async function connectWallet() {
 
             // Set wallet state and update button
             walletConnected = true;
-            // Save to localStorage
             localStorage.setItem('walletConnected', 'true');
             localStorage.setItem('walletAddress', connectedWallet);
             
-            connectWalletButton.textContent = `${connectedWallet.slice(0, 3)}...${connectedWallet.slice(-3)}`;
+            connectWalletButton.classList.add('connected');
+            connectWalletButton.textContent = isMobile ? "" : 
+                `${connectedWallet.slice(0, 3)}...${connectedWallet.slice(-3)}`;
 
             console.log("Wallet connected successfully:", connectedWallet);
-
-            enableButtons(["cancelAuctionButton", "placeBidButton"]);
-
             await getBazARProfile(); 
         } else {
             showToast("Arweave wallet not found. Please ensure ArConnect is installed and enabled.");
@@ -74,6 +74,18 @@ async function connectWallet() {
         showToast("Failed to connect to Arweave wallet. Please try again.");
     }
 }
+
+// Add this to your window load handler to set initial state
+window.addEventListener('load', () => {
+    const connectWalletButton = document.getElementById("connectWalletButton");
+    if (walletConnected) {
+        connectWalletButton.classList.add('connected');
+    }
+    // Set initial text based on screen size
+    if (window.innerWidth <= 549) {
+        connectWalletButton.textContent = "";
+    }
+});
 
 // Add this to your page load handler
 document.addEventListener('DOMContentLoaded', async function() {
@@ -87,24 +99,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         profileId = savedProfileId;
         const connectWalletButton = document.getElementById("connectWalletButton");
         connectWalletButton.textContent = `${savedAddress.slice(0, 3)}...${savedAddress.slice(-3)}`;
-        enableButtons(["cancelAuctionButton", "placeBidButton"]);
         if (savedProfileId) {
             await fetchOwnedAssets();
         }
     }
 });
 
-// Helper function to enable multiple buttons
-function enableButtons(buttonIds) {
-    buttonIds.forEach(id => {
-        const button = document.getElementById(id);
-        if (button) {
-            button.disabled = false;
-        } else {
-            console.warn(`Button with ID '${id}' not found.`);
-        }
-    });
-}
+
 
 async function ensureWalletConnected() {
     if (!walletConnected) {
@@ -160,54 +161,65 @@ let allAssets = [];
 
 // Fetch and paginate assets
 async function fetchOwnedAssets() {
-    try {
-        if (!profileId) {
-            console.error("Profile ID is not set.");
-            allAssets = [];
-            totalPages = 0;
-            currentPage = 1;
-            // Clear the displays if they exist
-            const assetList = document.getElementById("assetList");
-            if (assetList) {
-                assetList.innerHTML = "";
-            }
-            return;
-        }
+   try {
+       if (!profileId) {
+           console.error("Profile ID is not set.");
+           allAssets = [];
+           totalPages = 0;
+           currentPage = 1;
+           // Clear the displays if they exist
+           const assetList = document.getElementById("assetList");
+           if (assetList) {
+               assetList.innerHTML = "";
+           }
+           return;
+       }
 
-        console.log(`Fetching assets for profile ID: ${profileId}`);
+       // Show loading message right away
+       const assetList = document.getElementById("assetList");
+       if (assetList) {
+           assetList.innerHTML = '<div class="loading-message">Loading...</div>';
+       }
 
-        const signer = createDataItemSigner(window.arweaveWallet);
+       console.log(`Fetching assets for profile ID: ${profileId}`);
 
-        const assetResponse = await dryrun({
-            process: profileId,
-            data: JSON.stringify({ ProfileId: profileId }),
-            tags: [
-                { name: "Action", value: "Info" },
-                { name: "Data-Protocol", value: "ao" },
-                { name: "Type", value: "Message" },
-                { name: "Variant", value: "ao.TN.1" }
-            ],
-            anchor: "1234",
-            signer: signer
-        });
+       const signer = createDataItemSigner(window.arweaveWallet);
 
-        console.log("Asset retrieval response:", assetResponse);
+       const assetResponse = await dryrun({
+           process: profileId,
+           data: JSON.stringify({ ProfileId: profileId }),
+           tags: [
+               { name: "Action", value: "Info" },
+               { name: "Data-Protocol", value: "ao" },
+               { name: "Type", value: "Message" },
+               { name: "Variant", value: "ao.TN.1" }
+           ],
+           anchor: "1234",
+           signer: signer
+       });
 
-        if (assetResponse && assetResponse.Messages && assetResponse.Messages[0] && assetResponse.Messages[0].Data) {
-            const assetData = JSON.parse(assetResponse.Messages[0].Data);
-            allAssets = assetData.Assets;
-            totalPages = Math.ceil(allAssets.length / assetsPerPage);
+       console.log("Asset retrieval response:", assetResponse);
 
-            console.log(`Total assets: ${allAssets.length}, Total pages: ${totalPages}`);
+       if (assetResponse && assetResponse.Messages && assetResponse.Messages[0] && assetResponse.Messages[0].Data) {
+           const assetData = JSON.parse(assetResponse.Messages[0].Data);
+           allAssets = assetData.Assets;
+           totalPages = Math.ceil(allAssets.length / assetsPerPage);
 
-            // Load the first page
-            loadAssetsPage(currentPage);
-        } else {
-            throw new Error("No valid asset data found in the response.");
-        }
-    } catch (error) {
-        console.error("Error fetching assets:", error);
-    }
+           console.log(`Total assets: ${allAssets.length}, Total pages: ${totalPages}`);
+
+           // Load the first page
+           loadAssetsPage(currentPage);
+       } else {
+           throw new Error("No valid asset data found in the response.");
+       }
+   } catch (error) {
+       console.error("Error fetching assets:", error);
+       // Show error in the asset list
+       const assetList = document.getElementById("assetList");
+       if (assetList) {
+           assetList.innerHTML = '<div class="loading-message">Error loading assets</div>';
+       }
+   }
 }
 
 // Add this with your other event listeners
@@ -524,44 +536,43 @@ document.getElementById('auctionSearch').addEventListener('keypress', function(e
 });
 
 async function performSearch() {
-    const searchTerm = document.getElementById('auctionSearch').value.toLowerCase().trim() || 
-                       document.getElementById('auctionSearchOverlay').value.toLowerCase().trim();
+    const searchTerm = (
+        document.getElementById('auctionSearch').value.toLowerCase().trim() ||
+        document.getElementById('auctionSearchOverlay').value.toLowerCase().trim()
+    );
 
-    // If search is empty, reset to original state
     if (!searchTerm) {
         currentDisplayedAuctions = null;
         auctionPage = 1;
+        totalAuctionPages = Math.ceil(allLiveAuctions.length / auctionsPerPage);
         await fetchLiveAuctions();
         return;
     }
 
-    // Filter auctions based on search term
+    const isFullAuctionId = /^[A-Za-z0-9_-]{32,}_\d+$/i.test(searchTerm);
+
     const filteredAuctions = await Promise.all(allLiveAuctions.map(async auction => {
         const { name } = await getAuctionDetails(auction.auctionId, auction.AssetID);
         const auctionName = name ? name.toLowerCase() : '';
+        
+        const matches = isFullAuctionId ? 
+            auction.auctionId.toLowerCase() === searchTerm :
+            auctionName.includes(searchTerm);
 
-        return {
-            matches: auction.auctionId.toLowerCase().includes(searchTerm) || 
-                    auctionName.includes(searchTerm),
-            auction: auction,
-            name: name
-        };
+        return { matches, auction, name };
     }));
 
-    // Filter out non-matches and extract auction objects
     const matchedAuctions = filteredAuctions
         .filter(result => result.matches)
         .map(result => ({...result.auction, name: result.name}));
 
-    // Update pagination for filtered results
     currentDisplayedAuctions = matchedAuctions;
     auctionPage = 1;
     totalAuctionPages = Math.ceil(matchedAuctions.length / auctionsPerPage);
 
-    // Display filtered results
     if (matchedAuctions.length === 0) {
         const auctionGrid = document.getElementById('auctionGrid');
-        auctionGrid.innerHTML = '<p class="no-results">No matching auctions found</p>';
+        auctionGrid.innerHTML = '<p>No matching auctions found</p>';
         document.getElementById('paginationControls').innerHTML = '';
     } else {
         displayAuctions(1, matchedAuctions);
@@ -725,7 +736,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 <h3 id="auctionName">${auctionName}</h3> 
                 <div class= "auction-box">
                 <p class="auction-quantity">Quantity: ${modalQuantity}</p>
-                <p class="auction-price">Starting Price: <span>${minBid} wAR</span></p>
+                <p class="auction-price">Starting Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} wAR</span></p>
                 <p class="auction-bid">Current Bid: <span>${highestBid}</span></p>
 
                 <!-- Bid Section -->
@@ -907,6 +918,13 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     if (!bidAmountInput || enteredBidAmount < 0.000001) {
         showToast("Error: Minimum bid is 0.000001 wAR.");
         console.log("Bid rejected: Entered bid is less than minimum bid requirement.");
+        return;
+    }
+
+    // Check maximum bid
+    const MAX_SAFE_PRICE = 1e6; // 1 million
+    if (enteredBidAmount > MAX_SAFE_PRICE) {
+        showToast(`Bid too high. Maximum allowed bid is ${MAX_SAFE_PRICE.toLocaleString()} wAR`);
         return;
     }
 
@@ -1105,8 +1123,8 @@ async function fetchBalanceForAsset(assetId) {
         console.log(`Available Quantity for ${assetId}: ${availableQuantity}`);
 
         // Update quantity header
-        document.getElementById("quantityHeader").innerText =
-            `Quantity (Available: ${availableQuantity})`;
+        document.getElementById("quantityHeader1").innerText =
+            `(Available: ${availableQuantity})`;
 
         // Remove any previously attached event listeners
         document.getElementById('listAssetButton').removeEventListener('click', handleListAssetClick);
@@ -1117,22 +1135,38 @@ async function fetchBalanceForAsset(assetId) {
     } catch (error) {
         console.error(`Error in fetchBalanceForAsset for ${assetId}:`, error);
         // Even if everything fails, still enable the button with 0 quantity
-        document.getElementById("quantityHeader").innerText = `Quantity (Available: 0)`;
+        document.getElementById("quantityHeader1").innerText = `(Available: -)`;
         document.getElementById('listAssetButton').addEventListener('click', () => handleListAssetClick(0));
     }
 }
 
 
-// Load a specific page of assets
 async function loadAssetsPage(page) {
     const startIndex = (page - 1) * assetsPerPage;
     const endIndex = Math.min(startIndex + assetsPerPage, allAssets.length);
     const assetsToDisplay = allAssets.slice(startIndex, endIndex);
 
     const signer = createDataItemSigner(window.arweaveWallet);
+    const assetList = document.getElementById("assetList");
+    assetList.innerHTML = ""; // Clear previous content
 
-    const assetDetails = await Promise.all(
-        assetsToDisplay.map(async (asset) => {
+    // Create placeholder elements for all assets immediately
+    assetsToDisplay.forEach(asset => {
+        const option = document.createElement("div");
+        option.className = "asset-option";
+        option.id = `asset-${asset.Id}`; // Add ID for later updating
+        
+        option.innerHTML = `
+            <img src="placeholder.png" alt="Loading...">
+            <span>Loading...</span>
+        `;
+        
+        assetList.appendChild(option);
+    });
+
+    // Process each asset independently
+    assetsToDisplay.forEach(async (asset) => {
+        try {
             const nameResponse = await dryrun({
                 process: asset.Id,
                 data: JSON.stringify({ Target: asset.Id }),
@@ -1146,73 +1180,105 @@ async function loadAssetsPage(page) {
                 signer: signer
             });
 
-            let assetName = asset.Id;
-            if (nameResponse && nameResponse.Messages && nameResponse.Messages[0] && nameResponse.Messages[0].Data) {
-                const nameData = JSON.parse(nameResponse.Messages[0].Data);
-                if (nameData.Name) {
-                    assetName = nameData.Name;
+            let assetName = "???";
+            if (nameResponse?.Messages?.[0]?.Data) {
+                try {
+                    const nameData = JSON.parse(nameResponse.Messages[0].Data);
+                    assetName = nameData.Name || nameData.Ticker || asset.Id;
+                } catch (error) {
+                    throw new Error("Failed to parse asset data");
                 }
             }
 
-            return {
-                id: asset.Id,
-                title: assetName,
-                thumbnail: `https://arweave.net/${asset.Id}`
+            // Try to load the image first
+            const img = new Image();
+            img.src = `https://arweave.net/${asset.Id}`;
+            
+            img.onload = () => {
+                updateAssetElement(asset.Id, assetName, img.src);
             };
-        })
-    );
+            
+            img.onerror = () => {
+                updateAssetElement(asset.Id, assetName, 'placeholder.png');
+            };
 
-    populateAssetList(assetDetails);
+        } catch (error) {
+            console.error(`Error loading asset ${asset.Id}:`, error);
+            // Show toast with error
+            showToast(`Failed to load asset ${asset.Id}. Removing from list.`);
+            
+            // Remove the element from DOM
+            const element = document.getElementById(`asset-${asset.Id}`);
+            if (element) {
+                element.remove();
+            }
+            
+            // Remove the asset from allAssets array
+            const index = allAssets.findIndex(a => a.Id === asset.Id);
+            if (index > -1) {
+                allAssets.splice(index, 1);
+                // Recalculate total pages
+                totalPages = Math.ceil(allAssets.length / assetsPerPage);
+                
+                // If current page is now empty and not the first page, go to previous page
+                if (currentPage > 1 && startIndex >= allAssets.length) {
+                    currentPage--;
+                    loadAssetsPage(currentPage);
+                    return;
+                }
+            }
+        }
+    });
 
     // Update pagination buttons
     document.getElementById("prevPage").disabled = currentPage === 1;
     document.getElementById("nextPage").disabled = currentPage === totalPages;
 }
 
-// Populate the asset list in the modal
-// Populate the asset list in the modal
-function populateAssetList(assets) {
-    const assetList = document.getElementById("assetList");
-    assetList.innerHTML = ""; // Clear previous content
+// Helper function to update asset elements
+function updateAssetElement(assetId, title, imageUrl) {
+    const element = document.getElementById(`asset-${assetId}`);
+    if (!element) return;
 
-    assets.forEach(asset => {
-        const option = document.createElement("div");
-        option.className = "asset-option";
+    element.innerHTML = `
+        <img src="${imageUrl}" alt="${title}" onerror="this.src='placeholder.png'">
+        <span>${title}</span>
+    `;
 
-        option.innerHTML = `
-            <img src="${asset.thumbnail}" alt="Thumbnail"">
-            <span>${asset.title}</span>
+    // Add click handler after content is loaded
+    element.onclick = async () => {
+        document.querySelector("#assetDropdown .selected").innerHTML = `
+            <img src="${imageUrl}" alt="${title}" onerror="this.src='placeholder.png'">
+            <span>${title}</span>
         `;
+        selectedAssetId = assetId;
+        closeModalById("assetSelectionModal");
 
-        option.onclick = async () => {
-            document.querySelector("#assetDropdown .selected").innerHTML = `
-                <img src="${asset.thumbnail}" alt="Thumbnail">
-                <span>${asset.title}</span>
-            `;
-            selectedAssetId = asset.id;
-            closeModalById("assetSelectionModal");
-
-            // **Fetch balance only on asset selection**
-            await fetchBalanceForAsset(selectedAssetId);
-        };
-
-        assetList.appendChild(option);
-    });
+        // Fetch balance only on asset selection
+        await fetchBalanceForAsset(selectedAssetId);
+    };
 }
 
-
 // Handle page navigation
-document.getElementById("prevPage").addEventListener("click", () => {
+document.getElementById("prevPage").addEventListener("click", async () => {
     if (currentPage > 1) {
+        // Show loading state
+        const assetList = document.getElementById("assetList");
+        assetList.innerHTML = '<div class="loading-message">Loading...</div>';
+        
         currentPage--;
-        loadAssetsPage(currentPage);
+        await loadAssetsPage(currentPage);
     }
 });
 
-document.getElementById("nextPage").addEventListener("click", () => {
+document.getElementById("nextPage").addEventListener("click", async () => {
     if (currentPage < totalPages) {
+        // Show loading state
+        const assetList = document.getElementById("assetList");
+        assetList.innerHTML = '<div class="loading-message">Loading...</div>';
+        
         currentPage++;
-        loadAssetsPage(currentPage);
+        await loadAssetsPage(currentPage);
     }
 });
 
@@ -1221,9 +1287,6 @@ document.querySelector("#assetDropdown .selected").addEventListener("click", () 
     const modal = document.getElementById("assetSelectionModal");
     modal.style.display = "block";
 });
-
-// Trigger fetching the owned assets and show them in the modal
-fetchOwnedAssets();
 
 
 
@@ -1249,8 +1312,34 @@ async function handleListAssetClick(availableQuantity) {
 
 async function listAsset(availableQuantity) {
     console.log("List Asset button clicked!");
-
-    const priceInput = document.getElementById("price").value;
+    
+        if (!selectedAssetId) {
+            showToast("Please select an asset first");
+            return;
+        }
+        
+        try {
+            document.getElementById('verificationOverlay').style.display = 'flex';
+        
+            // Verify the asset is from a known collection
+            const isVerifiedAsset = await verifyAssetInCollections(selectedAssetId);
+            
+            // Hide the verification overlay
+            document.getElementById('verificationOverlay').style.display = 'none';
+            
+            if (!isVerifiedAsset) {
+                showToast("The asset you are trying to list is not from a verified collection");
+                return;
+            }
+            
+            // Continue with the rest of your existing listAsset function
+            const priceInput = document.getElementById("price").value;
+            // Add validation for maximum price
+            const MAX_SAFE_PRICE = 1e6; // 1 million
+            if (parseFloat(priceInput) > MAX_SAFE_PRICE) {
+                showToast(`Price too high. Maximum allowed price is ${MAX_SAFE_PRICE.toLocaleString()}wAR`);
+                return;
+            }
     const durationInput = document.getElementById("durationDropdown").value;
     const quantityInputRaw = document.getElementById("quantity").value;
     const quantityInput = parseInt(quantityInputRaw);
@@ -1349,8 +1438,56 @@ async function listAsset(availableQuantity) {
         console.error("Error listing asset:", error);
         showToast(error.message || "Error listing asset. Please try again.");
     }
+} catch (error) {
+    document.getElementById('verificationOverlay').style.display = 'none';
+    console.error("Error during listing process:", error);
+    showToast("Error verifying collection membership");
+}
 }
 
+// Function to verify if an asset belongs to any known collection
+async function verifyAssetInCollections(assetId) {
+    try {
+        const signer = createDataItemSigner(window.arweaveWallet);
+        
+        // Iterate through each collection
+        for (const collection of knownCollections) {
+            // Fetch collection data
+            const collectionResponse = await dryrun({
+                process: collection.id,
+                tags: [{ name: "Action", value: "Info" }],
+                signer: signer
+            });
+
+            if (collectionResponse && collectionResponse.Messages && collectionResponse.Messages[0]) {
+                const collectionData = JSON.parse(collectionResponse.Messages[0].Data);
+                const collectionAssets = collectionData.Assets || [];
+
+                // Check if the asset exists in this collection
+                if (collectionAssets.includes(assetId)) {
+                    return true;
+                }
+            }
+        }
+        
+        // If we've checked all collections and haven't found the asset
+        return false;
+    } catch (error) {
+        console.error("Error verifying collection membership:", error);
+        throw error;
+    }
+}
+
+const overlayHTML = `
+<div id="verificationOverlay" class="verification-overlay" style="display: none;">
+    <div class="verification-message">
+        <div class="verification-spinner"></div>
+        <span>Checking if asset is from a Verified Collection...</span>
+    </div>
+</div>
+`;
+
+document.body.insertAdjacentHTML('beforeend', overlayHTML);
 
 async function resetAssetSelection() {
     // Clear the selected asset ID
@@ -1363,9 +1500,9 @@ async function resetAssetSelection() {
     }
 
     // Reset the quantity header
-    const quantityHeader = document.getElementById("quantityHeader");
+    const quantityHeader = document.getElementById("quantityHeader1");
     if (quantityHeader) {
-        quantityHeader.innerText = "Quantity (Available: -)";
+        quantityHeader.innerText = "(Available: -)";
     }
 
     // Clear form input fields
@@ -1385,8 +1522,15 @@ searchIcon.addEventListener('click', () => {
     searchOverlay.classList.add('active');
 });
 
-closeIcon.addEventListener('click', () => {
-    searchOverlay.classList.remove('active');
+const searchDropdown = document.getElementById('searchDropdown');
+
+closeIcon.addEventListener('click', function() {
+    document.querySelector('.search-overlay').classList.remove('active');
+    document.getElementById('auctionSearchOverlay').value = '';
+    // Hide the dropdown
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
 });
 
 

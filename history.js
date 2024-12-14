@@ -1,7 +1,7 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
 import { knownCollections } from './collections.js';
 
-const auctionProcessId = "JcLv70VyPbCmyjvNrKLiHWKaPfKUxq2w9pRssdGlHBo";
+const auctionProcessId = "75aoYp-U8k3VwS1PBnz0y8gVDuj-22rfyPFXDpO0lVo";
 const historyProcessId = "_26RaTB0V3U2AMW2tU-9RxjzuscRW_4qMgRO27ogYa8";
 let walletConnected = false;
 let profileId = null;
@@ -12,6 +12,7 @@ let selectedAssetId = null;
 
 async function connectWallet() {
     const connectWalletButton = document.getElementById("connectWalletButton");
+    const isMobile = window.innerWidth <= 549;
 
     // Check if already connected, then disconnect
     if (walletConnected) {
@@ -23,7 +24,8 @@ async function connectWallet() {
             localStorage.removeItem('walletAddress');
             localStorage.removeItem('profileId');
             fetchOwnedAssets()
-            connectWalletButton.textContent = "Connect";
+            connectWalletButton.classList.remove('connected');
+            connectWalletButton.textContent = isMobile ? "" : "Connect";
             return;
         } catch (error) {
             console.error("Error disconnecting wallet:", error);
@@ -53,10 +55,11 @@ async function connectWallet() {
             localStorage.setItem('walletConnected', 'true');
             localStorage.setItem('walletAddress', connectedWallet);
             
-            connectWalletButton.textContent = `${connectedWallet.slice(0, 3)}...${connectedWallet.slice(-3)}`;
+            connectWalletButton.classList.add('connected');
+            connectWalletButton.textContent = isMobile ? "" : 
+                `${connectedWallet.slice(0, 3)}...${connectedWallet.slice(-3)}`;
 
             console.log("Wallet connected successfully:", connectedWallet);
-
 
             await getBazARProfile(); 
         } else {
@@ -67,6 +70,18 @@ async function connectWallet() {
         showToast("Failed to connect to Arweave wallet. Please try again.");
     }
 }
+
+// Add this to your window load handler to set initial state
+window.addEventListener('load', () => {
+    const connectWalletButton = document.getElementById("connectWalletButton");
+    if (walletConnected) {
+        connectWalletButton.classList.add('connected');
+    }
+    // Set initial text based on screen size
+    if (window.innerWidth <= 549) {
+        connectWalletButton.textContent = "";
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check for existing connection
@@ -220,6 +235,7 @@ document.getElementById('listToggleButton').addEventListener('click', function(e
     localStorage.setItem('openListingForm', 'true');
 });
 
+// Global state variables
 let historyPage = 1;  // Track the current history page
 const historyPerPage = 15;  // Limit history entries per page
 let totalHistoryPages = 1;  // Total number of history pages
@@ -227,69 +243,142 @@ let allHistoryEntries = [];  // Store all history entries globally for paginatio
 
 async function fetchHistoryCatalog() {
     try {
-        console.log("Fetching auction history...");
+        showLoadingIndicator();
 
         const signer = createDataItemSigner(window.arweaveWallet);
-
-        // Fetch history data using a dryrun
         const historyResponse = await dryrun({
             process: historyProcessId,
             tags: [{ name: "Action", value: "Info" }],
             signer: signer
         });
 
-        console.log("History info dryrun response:", historyResponse);
-
-        if (historyResponse && historyResponse.Messages && historyResponse.Messages.length > 0) {
-            allHistoryEntries = [];
-
-            // Loop through history messages and extract data
+        if (historyResponse?.Messages?.length > 0) {
+            const entries = [];
+            
+            // Parse basic history data first
             for (const message of historyResponse.Messages) {
                 const historyDataTag = message.Tags.find(tag => tag.name === "History");
-
                 if (historyDataTag) {
-                    // Parse the history data
                     const historyData = JSON.parse(historyDataTag.value);
-
-                    // Process each history entry
-                    for (const entry of historyData) {
-                        // Convert final price to wAR format if it exists
-                        let finalPrice = "No Sale";
-                        if (entry.FinalPrice > 0) {
-                            finalPrice = (entry.FinalPrice / 1e12).toFixed(6) + " wAR";
-                        }
-
-                        // Add formatted entry to the array
-                        allHistoryEntries.push({
-                            ...entry,
-                            formattedPrice: finalPrice,
-                            timestamp: new Date(entry.Expiry).toLocaleString() // Convert timestamp to readable format
-                        });
-                    }
+                    entries.push(...historyData.map(entry => ({
+                        ...entry,
+                        formattedPrice: entry.FinalPrice > 0 ? 
+                            (entry.FinalPrice / 1e12).toFixed(6) + " wAR" : "No Sale",
+                        timestamp: new Date(entry.Expiry).toLocaleString(),
+                        AssetName: null  // Initialize with null, will be loaded progressively
+                    })));
                 }
             }
 
-            // Sort entries by Expiry timestamp in descending order (newest first)
-            allHistoryEntries.sort((a, b) => b.Expiry - a.Expiry);
-
-            console.log("All history entries:", allHistoryEntries);
+            // Sort entries
+            entries.sort((a, b) => b.Expiry - a.Expiry);
+            
+            // Update global state
+            allHistoryEntries = entries;
             totalHistoryPages = Math.ceil(allHistoryEntries.length / historyPerPage);
-            console.log(`Total history entries: ${allHistoryEntries.length}, Total pages: ${totalHistoryPages}`);
+            historyPage = 1;  // Reset to first page when loading new data
+
+            // Display first page immediately
+            hideLoadingIndicator();
             displayHistory(historyPage);
-        } else {
-            console.error("No auction history available.");
-            showToast("No auction history found.");
+
+            // Load names for first page with higher priority
+            const firstPageEntries = allHistoryEntries.slice(0, historyPerPage);
+            const firstPagePromises = firstPageEntries.map(entry => 
+                fetchAssetName(entry.AssetID).then(name => {
+                    entry.AssetName = name;
+                    // Trigger display update if we're still on first page
+                    if (historyPage === 1) {
+                        displayHistory(1);
+                    }
+                })
+            );
+
+            // Start loading remaining names in background with delay
+            setTimeout(() => {
+                const remainingEntries = allHistoryEntries.slice(historyPerPage);
+                remainingEntries.forEach((entry, index) => {
+                    setTimeout(() => {
+                        fetchAssetName(entry.AssetID).then(name => {
+                            entry.AssetName = name;
+                        });
+                    }, index * 50); // Stagger requests to prevent overwhelming
+                });
+            }, 1000); // Wait for first page to load
+
+            // Wait for first page names before hiding loading indicator
+            await Promise.all(firstPagePromises);
         }
     } catch (error) {
         console.error("Error fetching history:", error);
+    } finally {
+        hideLoadingIndicator();
     }
 }
+
+// Update changePage function to use global state
+function changePage(newPage) {
+    if (newPage >= 1 && newPage <= totalHistoryPages) {
+        historyPage = newPage;
+        
+        // Display page immediately with loading states
+        displayHistory(newPage);
+
+        // Load any missing names for this page
+        const pageStart = (newPage - 1) * historyPerPage;
+        const pageEnd = pageStart + historyPerPage;
+        const pageEntries = allHistoryEntries.slice(pageStart, pageEnd);
+        
+        pageEntries.forEach(entry => {
+            if (!entry.AssetName) {
+                fetchAssetName(entry.AssetID).then(name => {
+                    entry.AssetName = name;
+                    displayHistory(newPage);
+                });
+            }
+        });
+    }
+}
+
+// Function to show loading indicator
+function showLoadingIndicator() {
+    const loadingElement = document.createElement('div');
+    loadingElement.id = 'loadingIndicator';
+    loadingElement.style.position = 'fixed';
+    loadingElement.style.top = '50%';
+    loadingElement.style.left = '50%';
+    loadingElement.style.transform = 'translate(-50%, -50%)';
+    loadingElement.style.zIndex = '1000';
+    loadingElement.style.padding = '20px';
+    loadingElement.style.background = 'transparent';
+    loadingElement.style.border = '1px solid #ccc';
+    loadingElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+    loadingElement.style.textAlign = 'center';
+    loadingElement.innerText = 'Loading...';
+    document.body.appendChild(loadingElement);
+}
+
+// Function to hide loading indicator
+function hideLoadingIndicator() {
+    const loadingElement = document.getElementById('loadingIndicator');
+    if (loadingElement) {
+        document.body.removeChild(loadingElement);
+    }
+}
+
 
 function formatPrice(price) {
     return Number((price / 1e12).toFixed(6)).toString() + " wAR";
 }
 
+// Track the currently displayed page to avoid race conditions
+let currentDisplayPage = 1;
+
 async function displayHistory(page, filteredEntries = null) {
+    // Update current page being displayed
+    currentDisplayPage = page;
+    const thisPageLoad = currentDisplayPage;
+    
     const start = (page - 1) * historyPerPage;
     const end = start + historyPerPage;
     const pageEntries = (filteredEntries || allHistoryEntries).slice(start, end);
@@ -300,110 +389,86 @@ async function displayHistory(page, filteredEntries = null) {
     const entriesContainer = document.createElement('div');
     entriesContainer.className = 'entries-container';
 
-    const signer = createDataItemSigner(window.arweaveWallet);
+    // Create a map to track entry elements by their index
+    const entryElements = new Map();
 
-    // Fetch additional details and update main array
-    const detailedEntries = await Promise.all(
-        pageEntries.map(async (entry) => {
-            // Check if we already have this entry with an AssetName in allHistoryEntries
-            const existingEntry = allHistoryEntries.find(e => e.AuctionId === entry.AuctionId);
-            if (existingEntry && existingEntry.AssetName) {
-                return existingEntry;
-            }
-
-            let assetName = "Unnamed Asset";
-            try {
-                const detailsResponse = await dryrun({
-                    process: entry.AssetID,
-                    data: JSON.stringify({ Target: entry.AssetID }),
-                    tags: [
-                        { name: "Action", value: "Info" },
-                        { name: "Data-Protocol", value: "ao" },
-                        { name: "Type", value: "Message" },
-                        { name: "Variant", value: "ao.TN.1" }
-                    ],
-                    anchor: "1234",
-                    signer: signer
-                });
-
-                if (detailsResponse?.Messages?.[0]?.Data) {
-                    const nameData = JSON.parse(detailsResponse.Messages[0].Data);
-                    if (nameData.Name) {
-                        assetName = nameData.Name;
-                    }
-                }
-            } catch (error) {
-                console.error(`Failed to fetch details for asset ${entry.AssetID}:`, error);
-            }
-
-            // Create updated entry
-            const updatedEntry = { ...entry, AssetName: assetName };
-
-            // Update the entry in the main array
-            const index = allHistoryEntries.findIndex(e => e.AuctionId === entry.AuctionId);
-            if (index !== -1) {
-                allHistoryEntries[index] = updatedEntry;
-            }
-
-            return updatedEntry;
-        })
-    );
-
-        detailedEntries.forEach((entry) => {
+    // Initial render of entries with loading state
+    pageEntries.forEach((entry, index) => {
         const entryElement = document.createElement('div');
         entryElement.className = 'history-entry';
-
-        // Create thumbnail
-        const thumbnail = document.createElement('img');
-        thumbnail.className = 'history-thumbnail';
-        thumbnail.src = `https://arweave.net/${entry.AssetID}`;
-        thumbnail.alt = `Asset ${entry.AssetID}`;
-        thumbnail.onerror = () => {
-            thumbnail.src = 'placeholder.png';
-        };
-
-        // Update click event to use hash
+        
+        // Render the entry with either existing name or loading state
+        updateEntryElement(entryElement, entry);
+        
+        // Store reference to the element
+        entryElements.set(index, entryElement);
+        
+        // Add click handler
         entryElement.addEventListener('click', () => {
             window.location.hash = `history/${entry.AuctionId}`;
             openHistoryDetails(entry);
         });
 
-        const details = document.createElement('div');
-        details.className = 'history-preview';
-
-        const priceInfo = document.createElement('div');
-        priceInfo.className = 'price-info';
-
-        if (entry.Status === "EXPIRED") {
-            priceInfo.innerHTML = `
-            <div class="expired">
-                <div>Start Price: ${formatPrice(entry.MinPrice)}</div>
-                <div>EXPIRED</div>
-            </div>
-            `;
-        } else {
-            priceInfo.innerHTML = `
-            <div class="sold">
-                <div>Start Price: ${formatPrice(entry.MinPrice)}</div>
-                <div>Sold For: ${formatPrice(entry.FinalPrice)}</div>
-            </div>
-            `;
-        }
-
-        const title = document.createElement('h3');
-        title.className = 'history-title'; // Add a specific class
-        title.textContent = entry.AssetName;
-
-        details.appendChild(title);
-        details.appendChild(priceInfo);
-        entryElement.appendChild(thumbnail);
-        entryElement.appendChild(details);
         entriesContainer.appendChild(entryElement);
     });
 
     container.appendChild(entriesContainer);
+    container.appendChild(createPaginationControls());
 
-    // Pagination controls
+    // Fetch asset names asynchronously
+    const namePromises = pageEntries.map(async (entry, index) => {
+        if (!entry.AssetName) {
+            try {
+                // Only update UI if we're still on the same page
+                if (currentDisplayPage === thisPageLoad) {
+                    const assetName = await fetchAssetName(entry.AssetID);
+                    entry.AssetName = assetName;
+                    
+                    const entryElement = entryElements.get(index);
+                    if (entryElement) {
+                        updateEntryElement(entryElement, entry);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to fetch name for asset ${entry.AssetID}:`, error);
+            }
+        }
+    });
+
+    // Optional: If you want to know when all names are loaded
+    Promise.all(namePromises).then(() => {
+        if (currentDisplayPage === thisPageLoad) {
+            console.log('All asset names loaded for current page');
+        }
+    });
+}
+
+// Helper function to update an entry element
+function updateEntryElement(element, entry) {
+    element.innerHTML = `
+        <img class="history-thumbnail" src="https://arweave.net/${entry.AssetID}" 
+             onerror="this.src='placeholder.png'" alt="Asset ${entry.AssetID}">
+        <div class="history-preview">
+            <h3 class="history-title ${!entry.AssetName ? 'loading' : ''}">
+                ${entry.AssetName || 'Loading...'}
+            </h3>
+            <div class="price-info">
+                ${entry.Status === "EXPIRED" ? 
+                    `<div class="expired">
+                        <div>Start Price: ${formatPrice(entry.MinPrice)}</div>
+                        <div>EXPIRED</div>
+                    </div>` :
+                    `<div class="sold">
+                        <div>Start Price: ${formatPrice(entry.MinPrice)}</div>
+                        <div>Sold For: ${formatPrice(entry.FinalPrice)}</div>
+                    </div>`
+                }
+            </div>
+        </div>`;
+}
+
+// Keep the existing createPaginationControls function as is
+function createPaginationControls() {
     const paginationControls = document.createElement('div');
     paginationControls.className = 'pagination-controls';
     paginationControls.innerHTML = `
@@ -412,51 +477,88 @@ async function displayHistory(page, filteredEntries = null) {
         <button id="nextPage" ${historyPage === totalHistoryPages ? 'disabled' : ''}>Next →</button>
     `;
 
-    container.appendChild(paginationControls);
-
-    document.getElementById('prevPage').addEventListener('click', () => {
+    paginationControls.querySelector('#prevPage').addEventListener('click', () => {
         if (historyPage > 1) {
-            historyPage--;
-            displayHistory(historyPage);
+            changePage(historyPage - 1);
         }
     });
 
-    document.getElementById('nextPage').addEventListener('click', () => {
+    paginationControls.querySelector('#nextPage').addEventListener('click', () => {
         if (historyPage < totalHistoryPages) {
-            historyPage++;
-            displayHistory(historyPage);
+            changePage(historyPage + 1);
         }
     });
+
+    return paginationControls;
 }
 
-// Create a helper function to fetch asset name
-async function fetchAssetName(assetId) {
-    let assetName = "Unnamed Asset";
-    try {
-        const signer = createDataItemSigner(window.arweaveWallet);
-        const detailsResponse = await dryrun({
-            process: assetId,
-            data: JSON.stringify({ Target: assetId }),
-            tags: [
-                { name: "Action", value: "Info" },
-                { name: "Data-Protocol", value: "ao" },
-                { name: "Type", value: "Message" },
-                { name: "Variant", value: "ao.TN.1" }
-            ],
-            anchor: "1234",
-            signer: signer
-        });
+// Cache to store asset names and track pending requests
+const assetNameCache = new Map();
+const pendingRequests = new Map();
 
-        if (detailsResponse?.Messages?.[0]?.Data) {
-            const nameData = JSON.parse(detailsResponse.Messages[0].Data);
-            if (nameData.Name) {
-                assetName = nameData.Name;
-            }
-        }
-    } catch (error) {
-        console.error(`Failed to fetch details for asset ${assetId}:`, error);
+// Modified helper function to fetch asset name with request deduplication
+async function fetchAssetName(assetId) {
+    // If we already have the result cached, return it immediately
+    if (assetNameCache.has(assetId)) {
+        console.log(`Using cached result for asset ${assetId}`);
+        return assetNameCache.get(assetId);
     }
-    return assetName;
+
+    // If there's already a pending request for this asset,
+    // wait for that request instead of making a new one
+    if (pendingRequests.has(assetId)) {
+        console.log(`Waiting for existing request for asset ${assetId}`);
+        return pendingRequests.get(assetId);
+    }
+
+    // Create a new request promise and store it
+    const requestPromise = (async () => {
+        let assetName = "Unnamed Asset";
+        
+        try {
+            console.log(`Fetching info for asset ${assetId}`);
+            const signer = createDataItemSigner(window.arweaveWallet);
+            const detailsResponse = await dryrun({
+                process: assetId,
+                data: JSON.stringify({ Target: assetId }),
+                tags: [
+                    { name: "Action", value: "Info" },
+                    { name: "Data-Protocol", value: "ao" },
+                    { name: "Type", value: "Message" },
+                    { name: "Variant", value: "ao.TN.1" }
+                ],
+                anchor: "1234",
+                signer: signer
+            });
+
+            if (detailsResponse?.Messages?.[0]?.Data) {
+                const nameData = JSON.parse(detailsResponse.Messages[0].Data);
+                if (nameData.Name) {
+                    assetName = nameData.Name;
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to fetch details for asset ${assetId}:`, error);
+        }
+
+        // Store the result in cache
+        assetNameCache.set(assetId, assetName);
+        // Remove from pending requests
+        pendingRequests.delete(assetId);
+        
+        return assetName;
+    })();
+
+    // Store the promise in pending requests
+    pendingRequests.set(assetId, requestPromise);
+    
+    return requestPromise;
+}
+
+// Helper function to clear caches if needed
+function clearAssetNameCaches() {
+    assetNameCache.clear();
+    pendingRequests.clear();
 }
 
 // Add this function to handle hash changes
@@ -612,18 +714,24 @@ document.getElementById('historySearch').addEventListener('keypress', function(e
 
 
 async function performHistorySearch() {
-    const searchTerm = document.getElementById('historySearch').value.toLowerCase().trim();
+    const searchTerm = (
+        document.getElementById('historySearch').value.toLowerCase().trim() ||
+        document.getElementById('historySearchOverlay').value.toLowerCase().trim()
+    );
 
     if (!searchTerm) {
         historyPage = 1;
+        totalHistoryPages = Math.ceil(allHistoryEntries.length / historyPerPage);
         await displayHistory(1);
         return;
     }
 
-    // Use the cached names in allHistoryEntries for searching
+    const isFullAuctionId = /^[A-Za-z0-9_-]{32,}_\d+$/i.test(searchTerm);
+
     const matchedEntries = allHistoryEntries.filter(entry => 
-        entry.AuctionId?.toLowerCase().includes(searchTerm) ||
-        (entry.AssetName && entry.AssetName.toLowerCase().includes(searchTerm))
+        (isFullAuctionId ? 
+            entry.AuctionId?.toLowerCase() === searchTerm :
+            (entry.AssetName && entry.AssetName.toLowerCase().includes(searchTerm)))
     );
 
     if (matchedEntries.length === 0) {
@@ -673,6 +781,76 @@ async function searchHistoryByCollection(collectionId) {
         showToast("Error fetching collection data");
     }
 }
+
+const searchIcon = document.querySelector('.search-icon');
+const searchOverlay = document.querySelector('.search-overlay');
+const closeIcon = document.querySelector('.close-icon');
+
+searchIcon.addEventListener('click', () => {
+    searchOverlay.classList.add('active');
+});
+
+const searchDropdown = document.getElementById('searchDropdown');
+
+closeIcon.addEventListener('click', function() {
+    document.querySelector('.search-overlay').classList.remove('active');
+    document.getElementById('historySearchOverlay').value = '';
+    // Hide the dropdown
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
+});
+
+
+
+document.getElementById('historySearchOverlay').addEventListener('input', async function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const dropdown = document.getElementById('searchDropdown');
+    const collectionsResults = document.getElementById('collectionsResults');
+
+    if (!searchTerm) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    // Search for matching collections
+    const matchingCollections = knownCollections.filter(collection => 
+        collection.name.toLowerCase().includes(searchTerm)
+    );
+
+    if (matchingCollections.length > 0) {
+        collectionsResults.innerHTML = `
+            <div class="dropdown-section">
+                <h3>Collections</h3>
+                ${matchingCollections.map(collection => `
+                    <div class="collection-item" data-id="${collection.id}">
+                        <span>${collection.name}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        dropdown.style.display = 'block';
+
+        // Add click handlers for collection items
+        document.querySelectorAll('.collection-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const collectionId = item.dataset.id;
+                await searchHistoryByCollection(collectionId);
+                dropdown.style.display = 'none';
+            });
+        });
+    } else {
+        dropdown.style.display = 'none';
+    }
+});
+
+document.getElementById('historySearchOverlay').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performHistorySearch();
+    }
+});
+
+
 
 // Show toast notification
 function showToast(message) {

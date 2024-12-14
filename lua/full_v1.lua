@@ -7,9 +7,11 @@ dbAdmin = require('@rakis/DbAdmin').new(Db)
 
 History = "_26RaTB0V3U2AMW2tU-9RxjzuscRW_4qMgRO27ogYa8"
 wAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
+feeAccount = "TjXwUoRIxHbvFkkA47eMKehHWoKaRZd9O1JVNBrfbnA"
+
 GlobalAuctionIndex = GlobalAuctionIndex or 0  -- Start as a number to be used in the key
 
--- Create tables for Auctions, Bids, and ProcessingAuctions
+-- Create tables for Auctions, Bids
 AUCTIONS = [[
   CREATE TABLE IF NOT EXISTS Auctions (
     AuctionId TEXT PRIMARY KEY,
@@ -297,13 +299,25 @@ function finalizeAuction(auctionId, m)
             ["X-Data"] = "Won auction: " .. auctionId
         })
 
+        local sellerAmount = math.floor(highestBid.Amount * 0.99)
+        local feeAmount = highestBid.Amount - sellerAmount
+        
         -- Transfer payment to seller
         Send({
             Target = wAR,
             Action = "Transfer",
             Recipient = auction.Seller,
-            Quantity = tostring(highestBid.Amount),
+            Quantity = tostring(sellerAmount),
             ["X-Data"] = "Payment for auction: " .. auctionId
+        })
+        
+        -- Pay auction fee of 1%
+        Send({
+            Target = wAR,
+            Action = "Transfer",
+            Recipient = feeAccount,
+            Quantity = tostring(feeAmount),
+            ["X-Data"] = "Fee for auction: " .. auctionId
         })
 
         -- Notify parties

@@ -58,12 +58,16 @@
     <h3 class = "historyNav"><a href="history.html">History</a></h3>
 
     <div class="search-container">
-        <input type="text" id="historySearch" placeholder="Search by name or auctionID...">
+        <input type="text" id="historySearch" placeholder="Search">
         <div id="searchDropdown" class="search-dropdown">
             <div id="collectionsResults"></div>
         </div>
     </div>
-
+    <div class="search-icon"></div>
+            <div class="search-overlay">
+            <input type="text" class="historySearchOverlay" id="historySearchOverlay" placeholder="Search auctions...">
+            <div class="close-icon"></div>
+            </div>
     <button class="connect-button" id="connectWalletButton" onclick="connectWallet()">Connect</button>
 </div>
 
