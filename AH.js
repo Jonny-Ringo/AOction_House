@@ -251,6 +251,7 @@ let allLiveAuctions = [];  // Store all live auctions globally for pagination
 // Function to fetch live auctions
 async function fetchLiveAuctions() {
     try {
+        showLoadingIndicator()
         console.log("Fetching live auctions...");
 
         const signer = createDataItemSigner(window.arweaveWallet);
@@ -324,9 +325,33 @@ async function fetchLiveAuctions() {
         }
     } catch (error) {
         console.error("Error fetching auctions:", error);
+    } finally {
+        hideLoadingIndicator();
     }
 }
 
+// Function to show loading indicator
+function showLoadingIndicator() {
+    const loadingElement = document.createElement('div');
+    loadingElement.id = 'loadingIndicator';
+    loadingElement.className = 'loading-spinner-overlay';
+    
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    
+    // Add spinner to loading element
+    loadingElement.appendChild(spinner);
+    document.body.appendChild(loadingElement);
+}
+
+// Function to hide loading indicator
+function hideLoadingIndicator() {
+    const loadingElement = document.getElementById('loadingIndicator');
+    if (loadingElement) {
+        document.body.removeChild(loadingElement);
+    }
+}
 
 
 // Function to display auctions with pagination

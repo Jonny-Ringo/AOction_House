@@ -344,17 +344,14 @@ function changePage(newPage) {
 function showLoadingIndicator() {
     const loadingElement = document.createElement('div');
     loadingElement.id = 'loadingIndicator';
-    loadingElement.style.position = 'fixed';
-    loadingElement.style.top = '50%';
-    loadingElement.style.left = '50%';
-    loadingElement.style.transform = 'translate(-50%, -50%)';
-    loadingElement.style.zIndex = '1000';
-    loadingElement.style.padding = '20px';
-    loadingElement.style.background = 'transparent';
-    loadingElement.style.border = '1px solid #ccc';
-    loadingElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-    loadingElement.style.textAlign = 'center';
-    loadingElement.innerText = 'Loading...';
+    loadingElement.className = 'loading-spinner-overlay';
+    
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    
+    // Add spinner to loading element
+    loadingElement.appendChild(spinner);
     document.body.appendChild(loadingElement);
 }
 
@@ -513,7 +510,7 @@ async function fetchAssetName(assetId) {
 
     // Create a new request promise and store it
     const requestPromise = (async () => {
-        let assetName = "Unnamed Asset";
+        let assetName = "???";
         
         try {
             console.log(`Fetching info for asset ${assetId}`);
@@ -574,7 +571,7 @@ window.addEventListener('hashchange', async () => {
         
         if (historyEntry) {
             // Fetch additional details if needed
-            let assetName = "Unnamed Asset";
+            let assetName = "???";
             try {
                 const signer = createDataItemSigner(window.arweaveWallet);
                 const detailsResponse = await dryrun({
@@ -636,7 +633,7 @@ function openHistoryDetails(entry) {
                 </div>
                 <div class="history-details">
                     <span class="close">&times;</span>
-                    <h3>${entry.AssetName || "Unnamed Asset"}</h3>
+                    <h3>${entry.AssetName || "???"}</h3>
                     <div class="history-box">
                         <p class="history-quantity">Quantity: ${entry.Quantity || 1}</p>
                         <p class="history-price">Start Price: <span>${formatPrice(entry.MinPrice)}</span></p>
