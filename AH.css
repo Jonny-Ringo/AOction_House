@@ -962,11 +962,33 @@ body, html {
     z-index: 9999;
 }
 
+.loading-spinner-overlay2 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
 .loading-spinner {
     width: 40px;
     height: 40px;
     border: 4px solid #f3f3f3;
     border-top: 4px solid #8c52ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-spinner2 {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #029dd1;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }

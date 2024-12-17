@@ -530,3 +530,67 @@ function HistoryCatalog(auctionId, status)
     
     print("Auction history recorded for: " .. auctionId .. " with status: " .. status)
 end
+
+
+
+
+
+--Master function to cancel aucitons and refund NFTs/bids
+function masterCancel(auctionId)
+
+    -- Get auction details
+    local auction = dbAdmin:exec(string.format([[
+        SELECT * FROM Auctions WHERE AuctionId = "%s";
+    ]], auctionId))[1]
+
+    if not auction then
+        print("Error: Auction not found: " .. auctionId)
+        return
+    end
+
+    -- Check for highest bid first
+    local highestBid = dbAdmin:exec(string.format([[
+        SELECT * FROM Bids 
+        WHERE AuctionId = "%s" 
+        ORDER BY Amount DESC 
+        LIMIT 1;
+    ]], auctionId))[1]
+
+    -- Return NFT to seller
+    Send({
+        Target = auction.AssetID,
+        Action = "Transfer",
+        Recipient = auction.SellerProfileID,
+        Quantity = tostring(auction.Quantity),
+        ["X-Data"] = "Auction force cancelled by owner, NFT returned"
+    })
+
+    print(string.format("NFT returned to seller profile %s with quantity %s", 
+        auction.SellerProfileID, 
+        auction.Quantity
+    ))
+
+    -- If there was a bid, refund it
+    if highestBid then
+        Send({
+            Target = wAR,
+            Action = "Transfer",
+            Recipient = highestBid.Bidder,
+            Quantity = tostring(highestBid.Amount),
+            ["X-Data"] = "Refund for cancelled auction: " .. auctionId
+        })
+
+        print(string.format("Bid refunded to bidder %s with amount %s wAR", 
+            highestBid.Bidder,
+            highestBid.Amount
+        ))
+    else
+        print("No active bids to refund")
+    end
+
+    -- Clean up the database
+    dbAdmin:exec(string.format([[DELETE FROM Bids WHERE AuctionId = "%s";]], auctionId))
+    dbAdmin:exec(string.format([[DELETE FROM Auctions WHERE AuctionId = "%s";]], auctionId))
+
+    print("Auction " .. auctionId .. " has been fully cancelled and removed from database")
+end

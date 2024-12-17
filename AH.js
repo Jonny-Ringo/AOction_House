@@ -117,6 +117,13 @@ async function ensureWalletConnected() {
 
 
 async function getBazARProfile() {
+
+       // Show loading message right away
+       const assetList = document.getElementById("assetList");
+       if (assetList) {
+           assetList.innerHTML = '<div class="loading-message">Loading...</div>';
+       }
+
     try {
         const walletAddress = await window.arweaveWallet.getActiveAddress();
         console.log(`Getting BazAR profile for address: ${walletAddress}`);
@@ -150,6 +157,10 @@ async function getBazARProfile() {
         await fetchOwnedAssets(); // Fetch the user's assets once the profile is found
     } catch (error) {
         console.error("Error retrieving BazAR profile:", error);
+        // Show error in the asset list since we started the loading there
+        if (assetList) {
+            assetList.innerHTML = '<div class="loading-message">Error: No profile found</div>';
+        }
         showToast(`Profile not found. Please create a profile at <a href="https://bazar.arweave.net/" target="_blank" style="color: #ffffff; text-decoration: underline;">BazAR</a>.`);
     }
 }
@@ -173,12 +184,6 @@ async function fetchOwnedAssets() {
                assetList.innerHTML = "";
            }
            return;
-       }
-
-       // Show loading message right away
-       const assetList = document.getElementById("assetList");
-       if (assetList) {
-           assetList.innerHTML = '<div class="loading-message">Loading...</div>';
        }
 
        console.log(`Fetching assets for profile ID: ${profileId}`);
@@ -243,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+let isFetchingLiveAuctions = false;
 let auctionPage = 1;  // Track the current auction page
 const auctionsPerPage = 15;  // Limit auctions per page
 let totalAuctionPages = 1;  // Total number of auction pages will be calculated based on the total auctions
@@ -250,8 +256,15 @@ let allLiveAuctions = [];  // Store all live auctions globally for pagination
 
 // Function to fetch live auctions
 async function fetchLiveAuctions() {
+
+    if (isFetchingLiveAuctions) {
+        console.warn("Live auctions are already being fetched. Skipping duplicate fetch.");
+        return; // Prevent overlapping fetches
+    }
+
+    isFetchingLiveAuctions = true; // Set the lock
+    showLoadingIndicator();
     try {
-        showLoadingIndicator()
         console.log("Fetching live auctions...");
 
         const signer = createDataItemSigner(window.arweaveWallet);
@@ -326,7 +339,8 @@ async function fetchLiveAuctions() {
     } catch (error) {
         console.error("Error fetching auctions:", error);
     } finally {
-        hideLoadingIndicator();
+        hideLoadingIndicator();     // Remove the loading spinner
+        isFetchingLiveAuctions = false; // Release the lock
     }
 }
 
@@ -353,15 +367,17 @@ function hideLoadingIndicator() {
     }
 }
 
+function formatBidAmount(amount) {
+    if (amount === "No Bids") return amount; // Handle the case where there are no bids
+    const parsedAmount = parseFloat(amount); // Convert to a number
+    return parsedAmount % 1 === 0 ? parsedAmount.toString() : parsedAmount.toFixed(6).replace(/\.?0+$/, '');
+}
 
-// Function to display auctions with pagination
-// Modify displayAuctions to use currentDisplayedAuctions
 async function displayAuctions(page, forcedAuctions = null) {
     const auctionGrid = document.getElementById('auctionGrid');
     const paginationControls = document.getElementById('paginationControls');
     auctionGrid.innerHTML = '';
 
-    // Use the appropriate auction list
     const auctionsToUse = forcedAuctions || currentDisplayedAuctions || allLiveAuctions;
 
     if (!auctionsToUse || auctionsToUse.length === 0) {
@@ -373,69 +389,120 @@ async function displayAuctions(page, forcedAuctions = null) {
     const endIndex = Math.min(startIndex + auctionsPerPage, auctionsToUse.length);
     const auctionsToDisplay = auctionsToUse.slice(startIndex, endIndex);
 
-    console.log(`Displaying auctions for page ${page}:`, auctionsToDisplay);
-
     auctionGrid.style.display = 'grid';
     auctionGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
     auctionGrid.style.gap = '20px';
 
-    const truncateAddress = (address) =>
-        address.length > 10 ? `${address.slice(0, 4)}...${address.slice(-4)}` : address;
-
-    let connectedWallet = null;
-    try {
-        // Try to get the wallet address if the user has connected the wallet
-        if (typeof window.arweaveWallet !== 'undefined') {
-            connectedWallet = await window.arweaveWallet.getActiveAddress();
-        }
-    } catch (error) {
-        console.log("No wallet connected, continuing to display auctions without wallet.");
-    }
-
+    // Create all auction thumbnails immediately with loading spinner
     for (const auction of auctionsToDisplay) {
-        const assetId = auction.AssetID;
-
-        const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, assetId);
-
-        const seller = auction.Seller || "Unknown";
-        const truncatedSeller = truncateAddress(seller);
-        let minBid = auction.MinPrice || 0;
-        minBid = (minBid / 1e12).toFixed(6);
-        const expiry = auction.Expiry || "Unknown";
-        const modalQuantity = auction.Quantity || 1;
-
         const auctionThumbnail = document.createElement('div');
         auctionThumbnail.classList.add('auction-thumbnail');
         auctionThumbnail.style.padding = '10px';
         auctionThumbnail.style.borderRadius = '8px';
+        auctionThumbnail.id = `auction-${auction.auctionId}`;
+        
+        // Format the highest bid
+        const formattedHighestBid = formatBidAmount(auction.highestBid);
 
+        // Initial content with spinner
         auctionThumbnail.innerHTML = `
-            <img src="${auctionImage}" alt="${auctionName}" class="thumbnail-image">
-            <h3>${auctionName.length > 15 ? auctionName.slice(0, 15) + '...' : auctionName}</h3>
-            <p>Current Bid: ${auction.highestBid}</p>
-            <p>End: ${new Date(parseInt(expiry)).toLocaleDateString()} 
-                ${new Date(parseInt(expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div style="height: 200px; display: flex; justify-content: center; align-items: center;">
+                <div class="loading-spinner2"></div>
+            </div>
+            <h3>Loading...</h3>
+            <p>Current Bid: ${formattedHighestBid}</p>
+            <p>End: ${new Date(parseInt(auction.Expiry || "0")).toLocaleDateString()} 
+                ${new Date(parseInt(auction.Expiry || "0")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
         `;
 
-        // Change the URL update in the auction thumbnail click
-        auctionThumbnail.onclick = async () => {
-            // Use hash instead of pushState
-            window.location.hash = `auction/${auction.auctionId}`;
-            
-            openAuctionDetails(
-                auctionName, auctionImage, minBid, auction.highestBid, seller, expiry,
-                auction.auctionId, null, connectedWallet, modalQuantity, auction.latestBidder
-            );
-        };
-
         auctionGrid.appendChild(auctionThumbnail);
+
+        // Load details asynchronously
+        loadAuctionDetails(auction, auctionThumbnail);
     }
 
+    updatePaginationControls(paginationControls, page, totalAuctionPages);
+}
+
+async function loadAuctionDetails(auction, thumbnailElement) {
+    const assetId = auction.AssetID;
+    let connectedWallet = null;
+
+    try {
+        if (typeof window.arweaveWallet !== 'undefined') {
+            connectedWallet = await window.arweaveWallet.getActiveAddress();
+        }
+    } catch (error) {
+        console.log("No wallet connected");
+    }
+
+    // Start image loading immediately
+    const imageUrl = `https://arweave.net/${assetId}`;
+    const imgContainer = thumbnailElement.querySelector('div');
+    if (imgContainer) {
+        imgContainer.innerHTML = `<img src="${imageUrl}" alt="Loading..." class="thumbnail-image" 
+            style="height: 200px; object-fit: contain;" 
+            onerror="this.src='placeholder.png'">`;
+    }
+
+    // Separately fetch the name and other details
+    try {
+        const { name: auctionName } = await getAuctionDetails(auction.auctionId, assetId);
+        
+        // Update just the name and details, leaving image alone
+        updateThumbnailDetails(thumbnailElement, {
+            name: auctionName,
+            image: imageUrl,
+            auction: auction,
+            connectedWallet: connectedWallet
+        });
+
+    } catch (error) {
+        console.error(`Error loading auction details for ${assetId}:`, error);
+        updateThumbnailDetails(thumbnailElement, {
+            name: 'Error loading',
+            image: imageUrl,
+            auction: auction,
+            connectedWallet: connectedWallet
+        });
+    }
+}
+
+
+
+// New function to update just the details without touching the image
+function updateThumbnailDetails(thumbnailElement, { name, image, auction, connectedWallet }) {
+    const seller = auction.Seller || "Unknown";
+    const minBid = ((auction.MinPrice || 0) / 1e12).toFixed(6);
+    const expiry = auction.Expiry || "Unknown";
+    const modalQuantity = auction.Quantity || 1;
+
+    // Update only the text elements
+    const nameElement = thumbnailElement.querySelector('h3');
+    if (nameElement) {
+        nameElement.textContent = name.length > 15 ? name.slice(0, 15) + '...' : name;
+    }
+
+    thumbnailElement.onclick = () => {
+        isHashUpdateInternal = true; // Prevent hashchange listener
+        window.location.hash = `auction/${auction.auctionId}`;
+    
+        openAuctionDetails(
+            name, image, minBid, auction.highestBid, seller, expiry,
+            auction.auctionId, null, connectedWallet, modalQuantity, auction.latestBidder
+        );
+    
+        setTimeout(() => isHashUpdateInternal = false, 300); // Reset lock after a short delay
+    };
+    
+}
+
+function updatePaginationControls(paginationControls, currentPage, totalPages) {
     paginationControls.innerHTML = `
-        <button id="prevAuctionPage" ${auctionPage === 1 ? 'disabled' : ''}>←&nbsp;Prev</button>
-        <span>Page ${auctionPage} of ${totalAuctionPages}</span>
-        <button id="nextAuctionPage" ${auctionPage === totalAuctionPages ? 'disabled' : ''}>Next&nbsp;→</button>
+        <button id="prevAuctionPage" ${currentPage === 1 ? 'disabled' : ''}>←&nbsp;Prev</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="nextAuctionPage" ${currentPage === totalPages ? 'disabled' : ''}>Next&nbsp;→</button>
     `;
 
     document.getElementById('prevAuctionPage').addEventListener('click', () => {
@@ -446,26 +513,24 @@ async function displayAuctions(page, forcedAuctions = null) {
     });
 
     document.getElementById('nextAuctionPage').addEventListener('click', () => {
-        if (auctionPage < totalAuctionPages) {
+        if (auctionPage < totalPages) {
             auctionPage++;
             displayAuctions(auctionPage);
         }
     });
 }
 
-// Update the page load handler to use hash
 document.addEventListener('DOMContentLoaded', async () => {
     await fetchLiveAuctions();
-    
-    // Check hash instead of pathname
-    const hash = window.location.hash.slice(1); // Remove the # symbol
+
+    const hash = window.location.hash.slice(1);
     if (hash.startsWith('auction/')) {
+        isHashUpdateInternal = true; // Prevent hashchange listener
         const auctionId = hash.split('/')[1];
-        
         const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
         if (auction) {
             const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
-            
+
             openAuctionDetails(
                 auctionName,
                 auctionImage,
@@ -480,14 +545,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 auction.latestBidder
             );
         }
+        setTimeout(() => isHashUpdateInternal = false, 300);
     }
 });
 
-// Update popstate to use hashchange instead
+
+let isHashUpdateInternal = false; // Tracks whether hash change is internal
+
 window.addEventListener('hashchange', async () => {
+    if (isHashUpdateInternal) return; // Ignore internal hash changes
+
     const hash = window.location.hash.slice(1);
     const modal = document.getElementById("auctionDetailsModal");
-    
+
     if (!hash) {
         modal.style.display = "none";
     } else if (hash.startsWith('auction/')) {
@@ -495,7 +565,7 @@ window.addEventListener('hashchange', async () => {
         const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
         if (auction) {
             const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
-            
+
             openAuctionDetails(
                 auctionName,
                 auctionImage,
@@ -512,6 +582,7 @@ window.addEventListener('hashchange', async () => {
         }
     }
 });
+
 
 document.getElementById('auctionSearch').addEventListener('input', async function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
@@ -734,11 +805,13 @@ async function getAuctionDetails(auctionId, assetId) {
     }
 }
 
-
+let isModalOpen = false;
 
 async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestBid, seller, expiry, auctionId, bidsDataTag, connectedWallet, modalQuantity, latestBidder) {
+    
+    if (isModalOpen) return; // Prevent reopening the modal while it's already open
+    isModalOpen = true;
     const modal = document.getElementById("auctionDetailsModal");
-    console.log("Auction ID before modification:", auctionId);
 
     const sellerFull = seller || "Unknown";  // Full seller address for comparison
     const sellerTruncated = sellerFull.slice(0, 4) + "..." + sellerFull.slice(-4);  // Truncate for display
@@ -746,6 +819,9 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     const latestBidderTruncated = (latestBidder && latestBidder !== "N/A")
     ? latestBidder.slice(0, 4) + "..." + latestBidder.slice(-4)
     : "N/A";
+
+    // Format the highest bid
+    const formattedHighestBid = formatBidAmount(highestBid);
 
     // Create the modal content structure
     const modalHTML = `
@@ -762,7 +838,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 <div class= "auction-box">
                 <p class="auction-quantity">Quantity: ${modalQuantity}</p>
                 <p class="auction-price">Starting Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} wAR</span></p>
-                <p class="auction-bid">Current Bid: <span>${highestBid}</span></p>
+                <p class="auction-bid">Current Bid: <span>${formattedHighestBid}</span></p>
 
                 <!-- Bid Section -->
                     <div class="bid-section">
@@ -783,7 +859,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 <div class="last-bidder">
                     <h3>Last Bid</h3>
                     <p class="bidder-address">Address: <span><a href="https://ao.link/#/entity/${latestBidder}" target="_blank">${latestBidderTruncated}</a></span></p>
-                    <p>Bid: <span>${highestBid}</span></p>
+                    <p>Bid: <span>${formattedHighestBid}</span></p>
                 </div>
 
                 </div>
@@ -838,7 +914,10 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     const closeButton = modal.querySelector(".close");
 
     // Add close button functionality
-    closeButton.addEventListener('click', closeAuctionDetails);
+    closeButton.addEventListener('click', () => {
+        closeAuctionDetails();
+        isModalOpen = false; // Reset flag when modal is closed
+    });
 
     try {
         // Rest of your existing code for wallet connection and button handling...
@@ -934,7 +1013,6 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     }
 
     const bidAmountInput = document.querySelector(".bidAmountInput");
-    
 
     // Parse bid amount entered by the user
     const enteredBidAmount = parseFloat(bidAmountInput.value);
@@ -973,8 +1051,21 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     }
 
     // Convert the bid to the correct 12-decimal format for wAR
-    const bidAmount = (enteredBidAmount * 1e12).toString();
+    const bidAmount = (enteredBidAmount * 1e12).toFixed(0); // Use toFixed to eliminate precision issues
     console.log("Converted bid amount (12-decimal format):", bidAmount);
+
+    // Create and show loading overlay
+    const loadingElement = document.createElement('div');
+    loadingElement.id = 'auctionLoadingIndicator';
+    loadingElement.className = 'loading-spinner-overlay2';
+
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+
+    // Add spinner to loading element
+    loadingElement.appendChild(spinner);
+    document.body.appendChild(loadingElement);
 
     try {
         // Step 1: Get the wallet address and store it in a variable
@@ -997,11 +1088,10 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
             signer: signer
         });
 
-
         // Step 3: Wait for and verify the bid confirmation
         let bidConfirmed = false;
         let retryCount = 0;
-        const maxRetries = 30;
+        const maxRetries = 60;
 
         while (!bidConfirmed && retryCount < maxRetries) {
             const resultsOut = await results({
@@ -1009,15 +1099,12 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
                 sort: "DESC",
                 limit: 3
             });
-        
-            // More strict message checking
-            // More strict message checking
-            // More strict message checking
+
+            // Check for confirmation or refund messages
             const messageFound = resultsOut.edges.some(edge => {
                 if (!edge.node?.Messages) return false;
-                
+
                 return edge.node.Messages.some(msg => {
-                    // Find the X-Data tag if it exists
                     const xDataTag = msg.Tags?.find(tag => tag.name === 'X-Data');
                     const xDataValue = xDataTag?.value;
 
@@ -1026,28 +1113,21 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
                         expectedTarget: walletAddress,
                         actualTarget: msg.Target,
                         actualData: msg.Data,
-                        actualXData: xDataValue,
-                        matches: {
-                            target: msg.Target === walletAddress,
-                            successMatch: msg.Data === `Bid placed successfully for auction: ${auctionId}`,
-                            refundMatch: xDataValue === `Bid is lower than the current highest bid. Refunding: ${bidAmount}`
-                        }
+                        actualXData: xDataValue
                     });
 
-                    // Check for success message (using original format)
                     if (msg.Target === walletAddress && msg.Data === `Bid placed successfully for auction: ${auctionId}`) {
-                        console.log("Bid confirmation found with exact match");
+                        console.log("Bid confirmation found.");
                         showToast("Bid Placed Successfully!");
                         closeAuctionDetails();
                         fetchLiveAuctions();
                         return true;
                     }
-                    
-                    // Check for refund message (using Tags format)
-                    if (msg.Tags?.find(tag => tag.name === 'Recipient')?.value === walletAddress && 
+
+                    if (msg.Tags?.find(tag => tag.name === 'Recipient')?.value === walletAddress &&
                         xDataValue === `Bid is lower than the current highest bid. Refunding: ${bidAmount}`) {
-                        console.log("Bid refund message found for specific amount");
-                        showToast("Bid was refunded: A higher bid was already placed");
+                        console.log("Bid refund message found.");
+                        showToast("Bid was refunded: A higher bid was already placed.");
                         closeAuctionDetails();
                         fetchLiveAuctions();
                         return true;
@@ -1056,36 +1136,37 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
                     return false;
                 });
             });
-        
+
             if (messageFound) {
-                return; // Exit the function if either message was found
+                return;
             }
-        
-            // Wait before next retry
+
             await new Promise(resolve => setTimeout(resolve, 1000));
             retryCount++;
-            console.log(`Waiting for bid confirmation... Attempt ${retryCount}/${maxRetries}`);
         }
 
         if (retryCount >= maxRetries) {
-            throw new Error("Bid confirmation timeout - please check your transaction status");
+            throw new Error("Bid confirmation timeout - please check your transaction status.");
         }
 
     } catch (error) {
         console.error("Error placing bid:", error);
         showToast(error.message || "Error placing bid. Please try again.");
+    } finally {
+        // Remove loading overlay when done (success or error)
+        const loadingElement = document.getElementById('auctionLoadingIndicator');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
     }
 }
-
-
-
 
 
 
 // Update closeAuctionDetails
 function closeAuctionDetails() {
     const modal = document.getElementById("auctionDetailsModal");
-    
+
     const bidAmountInput = modal.querySelector(".bidAmountInput");
     if (bidAmountInput) {
         bidAmountInput.value = "";
@@ -1094,6 +1175,7 @@ function closeAuctionDetails() {
     modal.style.display = "none";
     // Clear the hash instead of using pushState
     window.location.hash = '';
+    isModalOpen = false;
 }
 
 
@@ -1175,21 +1257,24 @@ async function loadAssetsPage(page) {
     const assetList = document.getElementById("assetList");
     assetList.innerHTML = ""; // Clear previous content
 
-    // Create placeholder elements for all assets immediately
+    // Create elements with images immediately
     assetsToDisplay.forEach(asset => {
         const option = document.createElement("div");
         option.className = "asset-option";
-        option.id = `asset-${asset.Id}`; // Add ID for later updating
+        option.id = `asset-${asset.Id}`;
         
+        // Set up image right away with error handling
         option.innerHTML = `
-            <img src="placeholder.png" alt="Loading...">
+            <img src="https://arweave.net/${asset.Id}" 
+                 alt="Loading..." 
+                 onerror="this.src='placeholder.png'">
             <span>Loading...</span>
         `;
         
         assetList.appendChild(option);
     });
 
-    // Process each asset independently
+    // Then fetch names and update them
     assetsToDisplay.forEach(async (asset) => {
         try {
             const nameResponse = await dryrun({
@@ -1215,37 +1300,37 @@ async function loadAssetsPage(page) {
                 }
             }
 
-            // Try to load the image first
-            const img = new Image();
-            img.src = `https://arweave.net/${asset.Id}`;
-            
-            img.onload = () => {
-                updateAssetElement(asset.Id, assetName, img.src);
-            };
-            
-            img.onerror = () => {
-                updateAssetElement(asset.Id, assetName, 'placeholder.png');
-            };
+            // Update just the name and click handler
+            const element = document.getElementById(`asset-${asset.Id}`);
+            if (element) {
+                const nameSpan = element.querySelector('span');
+                if (nameSpan) nameSpan.textContent = assetName;
+                
+                // Add click handler
+                element.onclick = () => {
+                    document.querySelector("#assetDropdown .selected").innerHTML = `
+                        <img src="https://arweave.net/${asset.Id}" alt="${assetName}" onerror="this.src='placeholder.png'">
+                        <span>${assetName}</span>
+                    `;
+                    selectedAssetId = asset.Id;
+                    closeModalById("assetSelectionModal");
+                    fetchBalanceForAsset(selectedAssetId);
+                };
+            }
 
         } catch (error) {
             console.error(`Error loading asset ${asset.Id}:`, error);
-            // Show toast with error
-            showToast(`Failed to load asset ${asset.Id}. Removing from list.`);
-            
-            // Remove the element from DOM
+            // Handle error case...
             const element = document.getElementById(`asset-${asset.Id}`);
             if (element) {
                 element.remove();
             }
             
-            // Remove the asset from allAssets array
             const index = allAssets.findIndex(a => a.Id === asset.Id);
             if (index > -1) {
                 allAssets.splice(index, 1);
-                // Recalculate total pages
                 totalPages = Math.ceil(allAssets.length / assetsPerPage);
                 
-                // If current page is now empty and not the first page, go to previous page
                 if (currentPage > 1 && startIndex >= allAssets.length) {
                     currentPage--;
                     loadAssetsPage(currentPage);
@@ -1342,6 +1427,14 @@ async function listAsset(availableQuantity) {
             showToast("Please select an asset first");
             return;
         }
+
+        const quantityInputRaw = document.getElementById("quantity").value;
+        const quantityInput = parseInt(quantityInputRaw);
+    
+        if (quantityInput > availableQuantity) {
+            showToast(`Cannot list more than available quantity (${availableQuantity} available)`);
+            return;
+        }
         
         try {
             document.getElementById('verificationOverlay').style.display = 'flex';
@@ -1366,8 +1459,7 @@ async function listAsset(availableQuantity) {
                 return;
             }
     const durationInput = document.getElementById("durationDropdown").value;
-    const quantityInputRaw = document.getElementById("quantity").value;
-    const quantityInput = parseInt(quantityInputRaw);
+
 
     // Validation checks (omitted here for brevity)
 
@@ -1403,60 +1495,74 @@ async function listAsset(availableQuantity) {
         // Wait for and verify the auction creation
         let auctionConfirmed = false;
         let retryCount = 0;
-        const maxRetries = 30;
+        const maxRetries = 60;
 
-        while (!auctionConfirmed && retryCount < maxRetries) {
-            const resultsOut = await results({
-                process: auctionProcessId,
-                sort: "DESC",
-                limit: 3
-            });
+        // Create and show loading overlay
+        const loadingElement = document.createElement('div');
+        loadingElement.id = 'auctionLoadingIndicator';
+        loadingElement.className = 'loading-spinner-overlay2';
 
-            console.log("Checking response:", JSON.stringify(resultsOut, null, 2));
+        // Create spinner
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
 
-            // Check messages for confirmation
-            for (const edge of resultsOut.edges) {
-                if (!edge.node?.Messages) continue;
-                
-                for (const msg of edge.node.Messages) {
-                    if (msg.Target === signerAddress && 
-                        msg.Data?.includes("Auction created successfully with ID:")) {
-                        
-                        // Parse the confirmation message
-                        const auctionDetails = msg.Data.match(/ID: (.+?) Quantity: (\d+) Expiry: (\d+)/);
-                        
-                        if (auctionDetails && 
-                            parseInt(auctionDetails[2]) === quantityInput && 
-                            parseInt(auctionDetails[3]) === parseInt(expiryTimestamp)) {  // Convert both to numbers
+        // Add spinner to loading element
+        loadingElement.appendChild(spinner);
+        document.body.appendChild(loadingElement);
+
+        try {
+            while (!auctionConfirmed && retryCount < maxRetries) {
+                const resultsOut = await results({
+                    process: auctionProcessId,
+                    sort: "DESC",
+                    limit: 3
+                });
+
+                console.log("Checking response:", JSON.stringify(resultsOut, null, 2));
+
+                // Check messages for confirmation
+                for (const edge of resultsOut.edges) {
+                    if (!edge.node?.Messages) continue;
+                    
+                    for (const msg of edge.node.Messages) {
+                        if (msg.Target === signerAddress && 
+                            msg.Data?.includes("Auction created successfully with ID:")) {
                             
-                            console.log("Found confirmation message:", msg.Data);
-                            const newAuctionId = auctionDetails[1];
-                            showToast(msg.Data);
-                            await resetAssetSelection();
-                            await fetchLiveAuctions();
-                            window.location.hash = `auction/${newAuctionId}`;
-                            await fetchOwnedAssets();
-                            return;
-                        } else {
-                            console.error("Auction details mismatch:", {
-                                expectedQuantity: quantityInput,
-                                receivedQuantity: auctionDetails ? parseInt(auctionDetails[2]) : null,
-                                expectedExpiry: parseInt(expiryTimestamp),  // Convert to number for logging
-                                receivedExpiry: auctionDetails ? parseInt(auctionDetails[3]) : null
-                            });
+                            // Parse the confirmation message
+                            const auctionDetails = msg.Data.match(/ID: (.+?) Quantity: (\d+) Expiry: (\d+)/);
+                            
+                            if (auctionDetails && 
+                                parseInt(auctionDetails[2]) === quantityInput && 
+                                parseInt(auctionDetails[3]) === parseInt(expiryTimestamp)) {
+                                
+                                console.log("Found confirmation message:", msg.Data);
+                                const newAuctionId = auctionDetails[1];
+                                showToast(msg.Data);
+                                await resetAssetSelection();
+                                await fetchLiveAuctions();
+                                window.location.hash = `auction/${newAuctionId}`;
+                                await fetchOwnedAssets();
+                                return;
+                            }
                         }
                     }
                 }
+
+                // Wait before next retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                retryCount++;
+                console.log(`Waiting for auction creation confirmation... Attempt ${retryCount}/${maxRetries}`);
             }
 
-            // Wait before next retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            retryCount++;
-            console.log(`Waiting for auction creation confirmation... Attempt ${retryCount}/${maxRetries}`);
-        }
-
-        if (retryCount >= maxRetries) {
-            throw new Error("Auction creation timeout - please check your transaction status");
+            if (retryCount >= maxRetries) {
+                throw new Error("Auction creation timeout - please check your transaction status");
+            }
+        } finally {
+            // Remove loading overlay when done (success or error)
+            const loadingElement = document.getElementById('auctionLoadingIndicator');
+            if (loadingElement) {
+                loadingElement.remove();
+            }
         }
 
     } catch (error) {
