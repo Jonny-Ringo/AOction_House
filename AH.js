@@ -1,7 +1,7 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
 import { knownCollections } from './collections.js';
 
-const auctionProcessId = "75aoYp-U8k3VwS1PBnz0y8gVDuj-22rfyPFXDpO0lVo";
+const auctionProcessId = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w";
 let walletConnected = false;
 let profileId = null;
 let selectedAssetId = null;

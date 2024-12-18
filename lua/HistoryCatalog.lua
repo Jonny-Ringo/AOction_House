@@ -4,7 +4,7 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-AuctionHouse = "75aoYp-U8k3VwS1PBnz0y8gVDuj-22rfyPFXDpO0lVo"
+AuctionHouse = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w"
 MAX_HISTORY_RECORDS = 2000
 
 HISTORY = [[
@@ -27,10 +27,11 @@ HISTORY = [[
 Handlers.add('info',
     function(m) return m.Action == "Info" end,
     function(msg)
-        local history = dbAdmin:exec([[
+        -- Fixed: Added empty array parameter for values
+        local history = dbAdmin:select([[
             SELECT * FROM HistoryCatalog 
             ORDER BY Expiry DESC;
-        ]])
+        ]], {})
         
         Send({
             Target = msg.From,
@@ -40,9 +41,9 @@ Handlers.add('info',
 )
 
 function printCatalog()
-    local history = dbAdmin:exec([[
+    local history = dbAdmin:select([[
         SELECT * FROM HistoryCatalog;
-    ]])
+    ]], {})
     print(json.encode(history))
 end
 
@@ -118,9 +119,9 @@ Handlers.prepend(
     end,
     function(msg)
         -- Get current count
-        local countResult = dbAdmin:exec([[
+        local countResult = dbAdmin:select([[
             SELECT COUNT(*) as count FROM HistoryCatalog;
-        ]])[1]
+        ]], {})[1]
         
         if not countResult then
             print("Warning: Unable to get history record count")

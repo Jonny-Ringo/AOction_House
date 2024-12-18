@@ -57,8 +57,9 @@ end
 Handlers.add('info',
     function(m) return m.Action == "Info" end,
     function(msg)
-        local auctions = dbAdmin:exec([[SELECT * FROM Auctions;]])
-        local bids = dbAdmin:exec([[SELECT * FROM Bids;]])
+        -- For these simple queries with no parameters, we can just pass an empty table
+        local auctions = dbAdmin:select([[SELECT * FROM Auctions;]], {})
+        local bids = dbAdmin:select([[SELECT * FROM Bids;]], {})
         
         Send({
             Target = msg.From,
@@ -192,9 +193,9 @@ Handlers.add(
         end
 
         -- Check if auction exists
-        local auction = dbAdmin:exec(string.format([[
-            SELECT * FROM Auctions WHERE AuctionId = "%s";
-        ]], auctionId))[1]
+        local auction = dbAdmin:select([[
+            SELECT * FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})[1]
 
         if not auction then
             Send({
@@ -220,12 +221,12 @@ Handlers.add(
         end
 
         -- Get highest bid
-        local highestBid = dbAdmin:exec(string.format([[
+        local highestBid = dbAdmin:select([[
             SELECT * FROM Bids 
-            WHERE AuctionId = "%s" 
+            WHERE AuctionId = ? 
             ORDER BY Amount DESC 
             LIMIT 1;
-        ]], auctionId))[1]
+        ]], {auctionId})[1]
 
         -- Check if new bid is too low
         if highestBid and bidAmount <= highestBid.Amount then
@@ -270,9 +271,9 @@ function finalizeAuction(auctionId, m)
     print("Starting finalization for auction: " .. auctionId)
     
     -- Get auction details first
-    local auction = dbAdmin:exec(string.format([[
-        SELECT * FROM Auctions WHERE AuctionId = "%s";
-    ]], auctionId))[1]
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
 
     if not auction then
         print("Auction " .. auctionId .. " not found in database - skipping")
@@ -282,9 +283,9 @@ function finalizeAuction(auctionId, m)
     local assetId = auction.AssetID
 
     -- Check for bids first before anything else
-    local highestBid = dbAdmin:exec(string.format([[
-        SELECT * FROM Bids WHERE AuctionId = "%s" ORDER BY Amount DESC LIMIT 1;
-    ]], auctionId))[1]
+    local highestBid = dbAdmin:select([[
+        SELECT * FROM Bids WHERE AuctionId = ? ORDER BY Amount DESC LIMIT 1;
+    ]], {auctionId})[1]
 
     if highestBid then
         -- Has winning bid
@@ -393,10 +394,10 @@ Handlers.prepend(
         -- Get expired auctions with additional logging
         print("Checking for expired auctions at time: " .. currentTime)
         
-        local expiredAuctions = dbAdmin:exec(string.format([[
+        local expiredAuctions = dbAdmin:select([[
             SELECT AuctionId FROM Auctions 
-            WHERE Expiry <= %d;
-        ]], currentTime))
+            WHERE Expiry <= ?;
+        ]], {currentTime})
 
         if #expiredAuctions == 0 then
             print("No expired auctions found")
@@ -428,9 +429,9 @@ Handlers.add('CancelAuction',
         local requester = m.From
 
         -- Get auction
-        local auction = dbAdmin:exec(string.format([[
-            SELECT * FROM Auctions WHERE AuctionId = "%s";
-        ]], auctionId))[1]
+        local auction = dbAdmin:select([[
+            SELECT * FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})[1]
 
         if not auction then
             print("Auction does not exist: " .. auctionId)
@@ -446,9 +447,9 @@ Handlers.add('CancelAuction',
         end
 
         -- Check for bids
-        local bidsCount = dbAdmin:exec(string.format([[
-            SELECT COUNT(*) as count FROM Bids WHERE AuctionId = "%s";
-        ]], auctionId))[1].count
+        local bidsCount = dbAdmin:select([[
+            SELECT COUNT(*) as count FROM Bids WHERE AuctionId = ?;
+        ]], {auctionId})[1].count
 
         if bidsCount > 0 then
             print("Cancel attempt failed. Bids exist for auction: " .. auctionId)
@@ -478,9 +479,9 @@ Handlers.add('CancelAuction',
 -- Helper function to catalog completed auctions
 function HistoryCatalog(auctionId, status)
     -- Get full auction details
-    local auction = dbAdmin:exec(string.format([[
-        SELECT * FROM Auctions WHERE AuctionId = "%s";
-    ]], auctionId))[1]
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
 
     if not auction then
         print("Warning: Unable to catalog auction history - auction not found: " .. auctionId)
@@ -488,12 +489,12 @@ function HistoryCatalog(auctionId, status)
     end
 
     -- Get winning bid if exists
-    local winningBid = dbAdmin:exec(string.format([[
+    local winningBid = dbAdmin:select([[
         SELECT * FROM Bids 
-        WHERE AuctionId = "%s" 
+        WHERE AuctionId = ? 
         ORDER BY Amount DESC 
         LIMIT 1;
-    ]], auctionId))[1]
+    ]], {auctionId})[1]
 
     -- Set bid-related values
     local finalPrice = 0
@@ -539,9 +540,9 @@ end
 function masterCancel(auctionId)
 
     -- Get auction details
-    local auction = dbAdmin:exec(string.format([[
-        SELECT * FROM Auctions WHERE AuctionId = "%s";
-    ]], auctionId))[1]
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
 
     if not auction then
         print("Error: Auction not found: " .. auctionId)
@@ -549,12 +550,12 @@ function masterCancel(auctionId)
     end
 
     -- Check for highest bid first
-    local highestBid = dbAdmin:exec(string.format([[
+    local highestBid = dbAdmin:select([[
         SELECT * FROM Bids 
-        WHERE AuctionId = "%s" 
+        WHERE AuctionId = ? 
         ORDER BY Amount DESC 
         LIMIT 1;
-    ]], auctionId))[1]
+    ]], {auctionId})[1]
 
     -- Return NFT to seller
     Send({
