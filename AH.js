@@ -1040,14 +1040,22 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     const highestBidValue = highestBid === "No Bids" ? 0 : parseFloat(highestBid);
     console.log("minBid:", minBid, "highestBid (converted):", highestBidValue);
 
-    // Get the greater value between minBid and highestBidValue
-    const minimumRequiredBid = Math.max(minBid, highestBidValue);
+    // Calculate minimum required bid with 1% increment
+    let minimumRequiredBid;
+    if (highestBidValue === 0) {
+        // If no previous bids, use the minBid
+        minimumRequiredBid = minBid;
+    } else {
+        // If there are previous bids, require 1% higher than the current highest bid
+        minimumRequiredBid = highestBidValue + (highestBidValue * 0.01);
+    }
+
     console.log("Bid must be more than:", minimumRequiredBid);
 
     // Compare entered bid with the minimum required bid
-    if ((enteredBidAmount < minBid) || (highestBidValue !== 0 && enteredBidAmount <= highestBidValue)) {
+    if (enteredBidAmount < minimumRequiredBid) {
         const errorMessage = highestBidValue !== 0
-            ? `Error: Bid must be greater than ${highestBidValue} wAR.`
+            ? `Error: Bid must be at least ${minimumRequiredBid.toFixed(6)} wAR (1% higher than current bid).`
             : `Error: Bid must be at least ${minBid} wAR.`;
 
         showToast(errorMessage);
