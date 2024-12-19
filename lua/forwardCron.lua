@@ -1,4 +1,4 @@
-auctionProcess = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w"
+auctionProcess = "CxO7svFyjmiK8e5pr19-Y5ieB84pKYNiFq-q078W8bo"
 
 Handlers.add(
     "ForwardCron",

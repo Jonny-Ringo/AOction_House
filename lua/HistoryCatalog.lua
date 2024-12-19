@@ -4,25 +4,9 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-AuctionHouse = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w"
+AuctionHouse = "CxO7svFyjmiK8e5pr19-Y5ieB84pKYNiFq-q078W8bo"
 MAX_HISTORY_RECORDS = 2000
 
-HISTORY = [[
-    CREATE TABLE IF NOT EXISTS HistoryCatalog (
-        EntryIndex INTEGER PRIMARY KEY AUTOINCREMENT,
-        AuctionId TEXT UNIQUE,
-        AssetID TEXT,
-        MinPrice INTEGER,
-        Expiry INTEGER,
-        Quantity INTEGER,
-        Seller TEXT,
-        SellerProfileID TEXT,
-        Status TEXT,
-        FinalPrice INTEGER,
-        Winner TEXT,
-        WinnerProfileID TEXT
-    );
-]]
 
 Handlers.add('info',
     function(m) return m.Action == "Info" end,
@@ -64,7 +48,7 @@ Handlers.add(
         end
 
         -- Insert the record into the history catalog
-        dbAdmin:exec(string.format([[
+        dbAdmin:apply([[
             INSERT INTO HistoryCatalog (
                 AuctionId,
                 AssetID,
@@ -77,32 +61,20 @@ Handlers.add(
                 FinalPrice,
                 Winner,
                 WinnerProfileID
-            ) VALUES (
-                "%s",
-                "%s",
-                %d,
-                %d,
-                %d,
-                "%s",
-                "%s",
-                "%s",
-                %d,
-                %s,
-                %s
-            );
-        ]], 
-        record.AuctionId,
-        record.AssetID,
-        record.MinPrice,
-        record.Expiry,
-        record.Quantity,
-        record.Seller,
-        record.SellerProfileID,
-        record.Status,
-        record.FinalPrice,
-        record.Winner and string.format('"%s"', record.Winner) or "NULL",
-        record.WinnerProfileID and string.format('"%s"', record.WinnerProfileID) or "NULL"
-        ))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        ]], {
+            record.AuctionId,
+            record.AssetID,
+            record.MinPrice,
+            record.Expiry,
+            record.Quantity,
+            record.Seller,
+            record.SellerProfileID,
+            record.Status,
+            record.FinalPrice,
+            record.Winner or "NULL",
+            record.WinnerProfileID or "NULL"
+        })
 
         print(string.format("Recorded history for auction: %s with status: %s", 
             record.AuctionId, record.Status))
@@ -134,15 +106,15 @@ Handlers.prepend(
             -- Calculate how many records to remove
             local recordsToRemove = currentCount - MAX_HISTORY_RECORDS
             
-            -- Delete oldest records based on Expiry timestamp
-            dbAdmin:exec(string.format([[
+            -- Delete oldest records
+            dbAdmin:apply([[
                 DELETE FROM HistoryCatalog 
                 WHERE EntryIndex IN (
                     SELECT EntryIndex FROM HistoryCatalog 
                     ORDER BY Expiry ASC 
-                    LIMIT %d
+                    LIMIT ?
                 );
-            ]], recordsToRemove))
+            ]], {recordsToRemove})
             
             print(string.format("Trimmed %d old records from history. Current count: %d", 
                 recordsToRemove, MAX_HISTORY_RECORDS))

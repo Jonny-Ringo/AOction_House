@@ -1,8 +1,9 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
 import { knownCollections } from './collections.js';
+import { Processes } from './processes.js';
 
-const auctionProcessId = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w";
-const historyProcessId = "_26RaTB0V3U2AMW2tU-9RxjzuscRW_4qMgRO27ogYa8";
+const { auctionProcessId, historyProcessId } = Processes;
+
 let walletConnected = false;
 let profileId = null;
 let selectedAssetId = null;
@@ -84,38 +85,47 @@ window.addEventListener('load', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Check for existing connection
-    const isConnected = localStorage.getItem('walletConnected');
-    const savedAddress = localStorage.getItem('walletAddress');
-    const savedProfileId = localStorage.getItem('profileId');
-    
-    if (isConnected === 'true' && savedAddress) {
-        walletConnected = true;
-        profileId = savedProfileId;
-        const connectWalletButton = document.getElementById("connectWalletButton");
-        connectWalletButton.textContent = `${savedAddress.slice(0, 3)}...${savedAddress.slice(-3)}`;
-        if (savedProfileId) {
-            await fetchOwnedAssets();
-        }
-    }
+    // Show loading indicator immediately when page loads
+    showLoadingIndicator();
 
-    // Fetch history catalog and wait for it to complete
-    await fetchHistoryCatalog();
-
-    // Now that we have the history entries, check for hash
-    const hash = window.location.hash.slice(1);
-    if (hash.startsWith('history/')) {
-        const auctionId = hash.split('/')[1];
-        const historyEntry = allHistoryEntries.find(entry => entry.AuctionId === auctionId);
+    try {
+        // Check for existing connection
+        const isConnected = localStorage.getItem('walletConnected');
+        const savedAddress = localStorage.getItem('walletAddress');
+        const savedProfileId = localStorage.getItem('profileId');
         
-        if (historyEntry) {
-            // Fetch the asset name before opening the modal
-            const assetName = await fetchAssetName(historyEntry.AssetID);
-            openHistoryDetails({
-                ...historyEntry,
-                AssetName: assetName
-            });
+        if (isConnected === 'true' && savedAddress) {
+            walletConnected = true;
+            profileId = savedProfileId;
+            const connectWalletButton = document.getElementById("connectWalletButton");
+            connectWalletButton.textContent = `${savedAddress.slice(0, 3)}...${savedAddress.slice(-3)}`;
+            if (savedProfileId) {
+                await fetchOwnedAssets();
+            }
         }
+
+        // Fetch history catalog and wait for it to complete
+        await fetchHistoryCatalog();
+
+        // Check for hash after history is loaded
+        const hash = window.location.hash.slice(1);
+        if (hash.startsWith('history/')) {
+            const auctionId = hash.split('/')[1];
+            const historyEntry = allHistoryEntries.find(entry => entry.AuctionId === auctionId);
+            
+            if (historyEntry) {
+                const assetName = await fetchAssetName(historyEntry.AssetID);
+                openHistoryDetails({
+                    ...historyEntry,
+                    AssetName: assetName
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error during page load:", error);
+        showToast("Error loading history data");
+    } finally {
+        hideLoadingIndicator();
     }
 });
 
@@ -211,17 +221,6 @@ async function fetchOwnedAssets() {
     }
 }
 
-// Helper function to enable multiple buttons
-function enableButtons(buttonIds) {
-    buttonIds.forEach(id => {
-        const button = document.getElementById(id);
-        if (button) {
-            button.disabled = false;
-        } else {
-            console.warn(`Button with ID '${id}' not found.`);
-        }
-    });
-}
 
 async function ensureWalletConnected() {
     if (!walletConnected) {
@@ -243,7 +242,6 @@ let allHistoryEntries = [];  // Store all history entries globally for paginatio
 
 async function fetchHistoryCatalog() {
     try {
-        showLoadingIndicator();
 
         const signer = createDataItemSigner(window.arweaveWallet);
         const historyResponse = await dryrun({

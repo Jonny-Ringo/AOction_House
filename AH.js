@@ -1,7 +1,9 @@
 import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
 import { knownCollections } from './collections.js';
+import { Processes } from './processes.js';
 
-const auctionProcessId = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w";
+const { auctionProcessId, historyProcessId } = Processes;
+
 let walletConnected = false;
 let profileId = null;
 let selectedAssetId = null;
@@ -916,6 +918,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
     // Add close button functionality
     closeButton.addEventListener('click', () => {
         closeAuctionDetails();
+
         isModalOpen = false; // Reset flag when modal is closed
     });
 
@@ -965,6 +968,8 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 
                 showToast(successMessage);
                 await fetchLiveAuctions();
+                await fetchOwnedAssets();
+                await fetchBalanceForAsset(selectedAssetId);
                 await closeAuctionDetails();
                 
             } catch (error) {
@@ -1200,8 +1205,13 @@ document.querySelector("#assetSelectionModal .close").addEventListener("click", 
 });
 
 
-
 async function fetchBalanceForAsset(assetId) {
+
+    // Early exit if no asset is selected
+    if (!assetId) {
+        return;
+    }
+    
     try {
         console.log(`Fetching balance for asset: ${assetId}`);
 
@@ -1233,17 +1243,18 @@ async function fetchBalanceForAsset(assetId) {
         document.getElementById("quantityHeader1").innerText =
             `(Available: ${availableQuantity})`;
 
-        // Remove any previously attached event listeners
-        document.getElementById('listAssetButton').removeEventListener('click', handleListAssetClick);
-        
-        // Add a new event listener for this asset
-        document.getElementById('listAssetButton').addEventListener('click', () => handleListAssetClick(availableQuantity));
+        // Store the available quantity as a data attribute on the list button
+        const listButton = document.getElementById('listAssetButton');
+        listButton.dataset.availableQuantity = availableQuantity;
+
+        return availableQuantity; // Return the quantity for use elsewhere if needed
 
     } catch (error) {
         console.error(`Error in fetchBalanceForAsset for ${assetId}:`, error);
-        // Even if everything fails, still enable the button with 0 quantity
         document.getElementById("quantityHeader1").innerText = `(Available: -)`;
-        document.getElementById('listAssetButton').addEventListener('click', () => handleListAssetClick(0));
+        const listButton = document.getElementById('listAssetButton');
+        listButton.dataset.availableQuantity = '0';
+        return 0;
     }
 }
 
@@ -1345,7 +1356,6 @@ async function loadAssetsPage(page) {
     document.getElementById("nextPage").disabled = currentPage === totalPages;
 }
 
-// Helper function to update asset elements
 function updateAssetElement(assetId, title, imageUrl) {
     const element = document.getElementById(`asset-${assetId}`);
     if (!element) return;
@@ -1355,7 +1365,6 @@ function updateAssetElement(assetId, title, imageUrl) {
         <span>${title}</span>
     `;
 
-    // Add click handler after content is loaded
     element.onclick = async () => {
         document.querySelector("#assetDropdown .selected").innerHTML = `
             <img src="${imageUrl}" alt="${title}" onerror="this.src='placeholder.png'">
@@ -1364,7 +1373,7 @@ function updateAssetElement(assetId, title, imageUrl) {
         selectedAssetId = assetId;
         closeModalById("assetSelectionModal");
 
-        // Fetch balance only on asset selection
+        // Fetch and update the balance immediately when a new asset is selected
         await fetchBalanceForAsset(selectedAssetId);
     };
 }
@@ -1407,18 +1416,31 @@ function calculateExpiryTimestamp(days) {
     return (now + durationMs).toString();
 }
 
-let isProcessing = false; // Flag to prevent multiple signer attempts
-// A wrapper function to handle the listing process
-async function handleListAssetClick(availableQuantity) {
+let isProcessing = false;
+
+async function handleListAssetClick() {
     if (isProcessing) {
         console.warn("Already processing a listing. Please wait.");
-        return; // Prevent double execution
+        return;
     }
 
-    isProcessing = true; // Set the flag to prevent multiple processing
+    isProcessing = true;
+    
+    // Get the current available quantity from the button's data attribute
+    const listButton = document.getElementById('listAssetButton');
+    const availableQuantity = parseInt(listButton.dataset.availableQuantity || '0');
+    
     await listAsset(availableQuantity);
-    isProcessing = false; // Reset the flag after processing
+    isProcessing = false;
 }
+
+// Add a single event listener when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const listButton = document.getElementById('listAssetButton');
+    if (listButton) {
+        listButton.addEventListener('click', handleListAssetClick);
+    }
+});
 
 async function listAsset(availableQuantity) {
     console.log("List Asset button clicked!");

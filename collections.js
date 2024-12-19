@@ -30,6 +30,11 @@ export const knownCollections = [
         id: "MwmJ69knT0MpsihR369PsxPsTOceDEsL5dOj5IjoP48",
         name: "Llama Dock",
         description: "Lets you control the destination of a boat at the Llama Docks"
+    },
+    {
+        id: "mWJ-ID29tE0K-9S60ScUqogLOBxeg7EvceTQzFF6z6U",
+        name: "AO War",
+        description: "Play Now at: ar://aowar. Compete with the Llama King in a duel of the classic card game 'War,' where Atomic Assets like card backs can be used or earned in-game."
     }
 
     // More collections added here

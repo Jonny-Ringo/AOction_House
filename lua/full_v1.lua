@@ -5,42 +5,12 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-History = "_26RaTB0V3U2AMW2tU-9RxjzuscRW_4qMgRO27ogYa8"
+History = "hJ02zSm_V-KLAiljFZo2xg5g5JEyKGXC0F0l--fRq5k"
 wAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
 feeAccount = "TjXwUoRIxHbvFkkA47eMKehHWoKaRZd9O1JVNBrfbnA"
 
 GlobalAuctionIndex = GlobalAuctionIndex or 0  -- Start as a number to be used in the key
 
--- Create tables for Auctions, Bids
-AUCTIONS = [[
-  CREATE TABLE IF NOT EXISTS Auctions (
-    AuctionId TEXT PRIMARY KEY,
-    AssetID TEXT,
-    MinPrice INTEGER,
-    Expiry INTEGER,
-    Quantity INTEGER,
-    Seller TEXT,
-    SellerProfileID TEXT
-  );
-]]
-
-BIDS = [[
-  CREATE TABLE IF NOT EXISTS Bids (
-    BidId INTEGER PRIMARY KEY AUTOINCREMENT,
-    AuctionId TEXT,
-    Bidder TEXT,
-    Amount INTEGER,
-    BidderProfileID TEXT,
-    FOREIGN KEY (AuctionId) REFERENCES Auctions(AuctionId)
-  );
-]]
-
-
-function InitDb()
-    db:exec(AUCTIONS)
-    db:exec(BIDS)
-    return {"Auctions", "Bids"}
-  end
 
 local function announce(msg, pids)
     Utils.map(function(pid)
@@ -84,8 +54,21 @@ Handlers.add(
         local NFT = m.From
 
 
-        -- Validate inputs with proper error handling
-        if not sellerProfileId or sellerProfileId == "" then
+        -- Validate seller Bazar profile inputs with proper error handling
+        if not sellerProfileId or sellerProfileId == "" or string.len(sellerProfileId) ~= 43 then
+            print(string.format("Error: Missing or invalid BazAR Profile ID. Sending NFT back to %s with quantity: %s", m.Sender, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = m.Sender,
+                ["X-Data"] = "Error: Missing or invalid BazAR Profile ID"
+            })
+            return
+        end
+
+        -- Validate Seller inputs with proper error handling
+        if not seller or seller == "" or string.len(seller) ~= 43 then
             print(string.format("Error: Missing or invalid BazAR Profile ID. Sending NFT back to %s with quantity: %s", m.Sender, quantity))
             Send({
                 Target = NFT,
@@ -137,10 +120,10 @@ Handlers.add(
         local auctionId = generateAuctionId(assetId)
 
         -- Insert auction into database
-        dbAdmin:exec(string.format([[
+        dbAdmin:apply([[
             INSERT INTO Auctions (AuctionId, AssetID, MinPrice, Expiry, Quantity, Seller, SellerProfileID)
-            VALUES ("%s", "%s", %d, %d, %d, "%s", "%s");
-        ]], auctionId, assetId, minPrice, expiry, quantity, seller, sellerProfileId))
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        ]], {auctionId, assetId, minPrice, expiry, quantity, seller, sellerProfileId})
         
         print(string.format("Auction created with ID: %s Quantity: %d Expiry: %d", auctionId, quantity, expiry))
         Send({
@@ -181,7 +164,7 @@ Handlers.add(
             return
         end
 
-        if not bidderProfileId or bidderProfileId == "" then
+        if not bidderProfileId or bidderProfileId == "" or string.len(bidderProfileId) ~= 43 then
             Send({
                 Target = wAR,
                 Action = "Transfer",
@@ -251,17 +234,17 @@ Handlers.add(
             })
             
             -- Remove old bid
-            dbAdmin:exec(string.format([[
+            dbAdmin:apply([[
                 DELETE FROM Bids
-                WHERE AuctionId = "%s" AND Bidder = "%s";
-            ]], auctionId, highestBid.Bidder))
+                WHERE AuctionId = ? AND Bidder = ?;
+            ]], {auctionId, highestBid.Bidder})
         end
 
         -- Insert new bid
-        dbAdmin:exec(string.format([[
+        dbAdmin:apply([[
             INSERT INTO Bids (AuctionId, Bidder, Amount, BidderProfileID)
-            VALUES ("%s", "%s", %d, "%s");
-        ]], auctionId, bidder, bidAmount, bidderProfileId))
+            VALUES (?, ?, ?, ?);
+        ]], {auctionId, bidder, bidAmount, bidderProfileId})
 
         Send({Target = bidder, Data = "Bid placed successfully for auction: " .. auctionId})
     end
@@ -357,8 +340,8 @@ function finalizeAuction(auctionId, m)
     end
 
     -- Clean up tables
-    dbAdmin:exec(string.format([[DELETE FROM Bids WHERE AuctionId = "%s";]], auctionId))
-    dbAdmin:exec(string.format([[DELETE FROM Auctions WHERE AuctionId = "%s";]], auctionId))
+    dbAdmin:apply([[DELETE FROM Bids WHERE AuctionId = ?;]], {auctionId})
+    dbAdmin:apply([[DELETE FROM Auctions WHERE AuctionId = ?;]], {auctionId})
     
     print("Auction removed from Tables: " .. auctionId)
 end
@@ -467,9 +450,9 @@ Handlers.add('CancelAuction',
         })
 
         -- Delete auction
-        dbAdmin:exec(string.format([[
-            DELETE FROM Auctions WHERE AuctionId = "%s";
-        ]], auctionId))
+        dbAdmin:apply([[
+            DELETE FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})
 
         print("Auction canceled: " .. auctionId)
         Send({Target = requester, Data = "Auction canceled successfully: " .. auctionId .. " and NFT(s) refunded."})
@@ -590,8 +573,8 @@ function masterCancel(auctionId)
     end
 
     -- Clean up the database
-    dbAdmin:exec(string.format([[DELETE FROM Bids WHERE AuctionId = "%s";]], auctionId))
-    dbAdmin:exec(string.format([[DELETE FROM Auctions WHERE AuctionId = "%s";]], auctionId))
+    dbAdmin:apply([[DELETE FROM Bids WHERE AuctionId = ?;]], {auctionId})
+    dbAdmin:apply([[DELETE FROM Auctions WHERE AuctionId = ?;]], {auctionId})
 
     print("Auction " .. auctionId .. " has been fully cancelled and removed from database")
 end
