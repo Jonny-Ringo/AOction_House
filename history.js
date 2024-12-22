@@ -222,12 +222,6 @@ async function fetchOwnedAssets() {
 }
 
 
-async function ensureWalletConnected() {
-    if (!walletConnected) {
-        throw new Error("Wallet not connected");  // Throw an error to stop the flow if not connected
-    }
-    return await window.arweaveWallet.getActiveAddress();  // Get active wallet address if connected
-}
 
 document.getElementById('listToggleButton').addEventListener('click', function(e) {
     // Set a flag to indicate we want the form open when we reach the home page
@@ -619,8 +613,11 @@ function openHistoryDetails(entry) {
 
     const sellerFull = entry.Seller || "Unknown";
     const sellerTruncated = sellerFull.slice(0, 4) + "..." + sellerFull.slice(-4);
-    const buyerFull = entry.Winner || "None";
-    const buyerTruncated = buyerFull !== "None" ? buyerFull.slice(0, 4) + "..." + buyerFull.slice(-4) : "None";
+    // Handle both null and "NULL" string cases
+    const buyerFull = (entry.Winner === "NULL" || !entry.Winner) ? null : entry.Winner;
+    const buyerTruncated = buyerFull ? 
+        `${buyerFull.slice(0, 4)}...${buyerFull.slice(-4)}` : 
+        "None";
 
     modal.innerHTML = `
         <div class="modal-container">
@@ -637,8 +634,12 @@ function openHistoryDetails(entry) {
                         <p class="history-price">Start Price: <span>${formatPrice(entry.MinPrice)}</span></p>
                         <p class="history-bid">Sold For: <span>${entry.FinalPrice ? formatPrice(entry.FinalPrice) : "Not Sold"}</span></p>
                         <p class="history-end">Auction Ended: ${new Date(parseInt(entry.Expiry)).toLocaleDateString()} 
-                          ${new Date(parseInt(entry.Expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        <p class="history-buyer">Buyer: <span>${buyerTruncated !== "None" ? `<a href="https://ao.link/#/entity/${buyerFull}" target="_blank">${buyerTruncated}</a>` : "None"}</span></p>
+                        ${new Date(parseInt(entry.Expiry)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p class="history-buyer">Buyer: <span>${
+                            buyerFull ? 
+                            `<a href="https://ao.link/#/entity/${buyerFull}" target="_blank">${buyerTruncated}</a>` : 
+                            "None"
+                        }</span></p>
                     </div>
                 </div>
             </div>
