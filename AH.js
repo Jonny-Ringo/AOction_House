@@ -372,7 +372,15 @@ function hideLoadingIndicator() {
 function formatBidAmount(amount) {
     if (amount === "No Bids") return amount; // Handle the case where there are no bids
     const parsedAmount = parseFloat(amount); // Convert to a number
-    return parsedAmount % 1 === 0 ? parsedAmount.toString() : parsedAmount.toFixed(6).replace(/\.?0+$/, '');
+    const formattedNumber = parsedAmount % 1 === 0 ? 
+        parsedAmount.toString() : 
+        parsedAmount.toFixed(6).replace(/\.?0+$/, '');
+    return `${formattedNumber} wAR`;
+}
+
+function formatStartingPrice(price) {
+    const formattedPrice = parseFloat(price).toString();
+    return formattedPrice.includes('.') ? formattedPrice.replace(/\.?0+$/, '') : formattedPrice;
 }
 
 async function displayAuctions(page, forcedAuctions = null) {
@@ -405,6 +413,7 @@ async function displayAuctions(page, forcedAuctions = null) {
         
         // Format the highest bid
         const formattedHighestBid = formatBidAmount(auction.highestBid);
+        const startingPrice = ((auction.MinPrice || 0) / 1e12).toFixed(6);
 
         // Initial content with spinner
         auctionThumbnail.innerHTML = `
@@ -412,7 +421,9 @@ async function displayAuctions(page, forcedAuctions = null) {
                 <div class="loading-spinner2"></div>
             </div>
             <h3>Loading...</h3>
-            <p>Current Bid: ${formattedHighestBid}</p>
+            <p>${auction.highestBid === "No Bids" ? 
+                `Start Price: ${formatStartingPrice(startingPrice)} wAR` : 
+                `Current Bid: ${formattedHighestBid}`}</p>
             <p>End: ${new Date(parseInt(auction.Expiry || "0")).toLocaleDateString()} 
                 ${new Date(parseInt(auction.Expiry || "0")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -480,14 +491,25 @@ function updateThumbnailDetails(thumbnailElement, { name, image, auction, connec
     const expiry = auction.Expiry || "Unknown";
     const modalQuantity = auction.Quantity || 1;
 
-    // Update only the text elements
+    // Update the text elements
     const nameElement = thumbnailElement.querySelector('h3');
     if (nameElement) {
         nameElement.textContent = name.length > 15 ? name.slice(0, 15) + '...' : name;
     }
 
+    // Update the bid display with proper formatting
+    const bidElement = thumbnailElement.querySelector('p:not(:last-child)');
+    if (bidElement) {
+        if (auction.highestBid === "No Bids") {
+            bidElement.textContent = `Start Price: ${formatStartingPrice(minBid)} wAR`;
+        } else {
+            const formattedBid = formatBidAmount(auction.highestBid);
+            bidElement.textContent = `Current Bid: ${formattedBid}`;
+        }
+    }
+
     thumbnailElement.onclick = () => {
-        isHashUpdateInternal = true; // Prevent hashchange listener
+        isHashUpdateInternal = true;
         window.location.hash = `auction/${auction.auctionId}`;
     
         openAuctionDetails(
@@ -495,9 +517,8 @@ function updateThumbnailDetails(thumbnailElement, { name, image, auction, connec
             auction.auctionId, null, connectedWallet, modalQuantity, auction.latestBidder
         );
     
-        setTimeout(() => isHashUpdateInternal = false, 300); // Reset lock after a short delay
+        setTimeout(() => isHashUpdateInternal = false, 300);
     };
-    
 }
 
 function updatePaginationControls(paginationControls, currentPage, totalPages) {
@@ -839,7 +860,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 <h3 id="auctionName">${auctionName}</h3> 
                 <div class= "auction-box">
                 <p class="auction-quantity">Quantity: ${modalQuantity}</p>
-                <p class="auction-price">Starting Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} wAR</span></p>
+                <p class="auction-price">Start Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} wAR</span></p>
                 <p class="auction-bid">Current Bid: <span>${formattedHighestBid}</span></p>
 
                 <!-- Bid Section -->
