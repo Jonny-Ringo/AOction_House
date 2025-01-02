@@ -1,11 +1,17 @@
 local json = require('json')
+local sqlite = require('lsqlite3')
 
+-- Initialize SQLite database with proper module names
+Db = Db or sqlite.open_memory()
+dbAdmin = require('@rakis/DbAdmin').new(Db)
+
+History = "hJ02zSm_V-KLAiljFZo2xg5g5JEyKGXC0F0l--fRq5k"
 wAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
-Auctions = Auctions or {}
-Bids = Bids or {}
-Payments = Payments or {}
-Transfers = Transfers or {}
+feeAccount = "TjXwUoRIxHbvFkkA47eMKehHWoKaRZd9O1JVNBrfbnA"
+
 GlobalAuctionIndex = GlobalAuctionIndex or 0  -- Start as a number to be used in the key
+
+MINIMUM_AUCTION_DURATION = 23 * 60 * 60 * 1000  -- 23 hours in milliseconds
 
 local function announce(msg, pids)
     Utils.map(function(pid)
@@ -16,142 +22,147 @@ end
 -- Helper function to create unique auction IDs
 local function generateAuctionId(assetId)
     GlobalAuctionIndex = GlobalAuctionIndex + 1
-    return assetId .. "_" .. tostring(GlobalAuctionIndex)  -- New format AssetID_Index
+    return assetId .. "_" .. tostring(GlobalAuctionIndex)
 end
 
 Handlers.add('info',
     function(m) return m.Action == "Info" end,
     function(msg)
-        local bidsJson = json.encode(Bids)
-        local auctionsJson = json.encode(Auctions)
-      
+        -- For these simple queries with no parameters, we can just pass an empty table
+        local auctions = dbAdmin:select([[SELECT * FROM Auctions;]], {})
+        local bids = dbAdmin:select([[SELECT * FROM Bids;]], {})
+        
         Send({
             Target = msg.From,
-            Bids = bidsJson,
-            Auctions = auctionsJson,
+            Bids = json.encode(bids),
+            Auctions = json.encode(auctions),
         })
     end
 )
 
--- Payment Received Handler
+-- Create Auction Handler
 Handlers.add(
-    "PaymentReceived",
-    function(m)
-        return m.Action == "Credit-Notice" and m.From == wAR
-    end,
-    function(m)
-        local payer = m.Sender
-
-        if not payer then
-            print("Error: Could not determine the payer's address")
-            return
-        end
-
-        Payments[payer] = Payments[payer] or 0
-        Payments[payer] = Payments[payer] + tonumber(m.Quantity)
-
-        -- Send a confirmation message
-        print("Payment received from: " .. payer .. " of amount: " .. m.Quantity)
-        Send({Target = payer, Action = "Payment-Received", Data = "Payment received for " .. m.Quantity .. " wAR."})
-    end
-)
-
--- Credit-Notice Handler for NFTs
-Handlers.add(
-    "NFTTransferReceived",
+    "CreateAuction",
     function(m)
         return m.Action == "Credit-Notice" and m.From ~= wAR
     end,
     function(m)
-        local assetId = m.From  -- Use m.From as the Asset ID (NFT process ID)
-        local sender = m.Sender   -- Sender of the NFT
-
-        -- Record the transfer details in the Transfers table
-        Transfers[assetId] = {
-            Sender = sender,
-            Quantity = tonumber(m.Quantity)  -- Store the quantity of NFTs being transferred
-        }
-
-        -- Log the event
-        print("NFT transferred from " .. sender .. " to auction house. Asset ID: " .. assetId .. ", Quantity: " .. m.Quantity)
-
-        -- Send a confirmation message to the sender
-        Send({Target = sender, Action = "Transfer Received", Data = "NFT: " .. assetId})
-    end
-)
-
--- Auction Creation Handler with SellerProfileID and unique auction key
-Handlers.add(
-    "CreateAuction",
-    function(m)
-        return m.Action == "Create-Auction"
-    end,
-    function(m)
-        local assetId = m.AuctionId  -- This is now treated as the AssetID
-        local minPrice = tonumber(m.MinPrice)
-        local expiry = tonumber(m.Expiry)
+        local minPrice = tonumber(m.Tags["X-MinPrice"])
+        local expiry = tonumber(m.Tags["X-Expiry"])
         local quantity = tonumber(m.Quantity)
-        local sellerProfileId = m.SellerProfileID  -- The seller's Bazar profile address
+        local sellerProfileId = m.Tags["X-SellerProfileID"]
+        local seller = m.Tags["X-Seller"]
+        local NFT = m.From
 
-        -- Validate inputs
-        if not assetId or assetId == "" then
-            Send({Target = m.From, Data = "Error: Missing asset ID"})
+
+        -- Validate seller Bazar profile inputs with proper error handling
+        if not sellerProfileId or sellerProfileId == "" or string.len(sellerProfileId) ~= 43 then
+            print(string.format("Error: Missing or invalid BazAR Profile ID. Sending NFT back to %s with quantity: %s", m.Sender, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = m.Sender,
+                ["X-Data"] = "Error: Missing or invalid BazAR Profile ID"
+            })
             return
         end
-        if not sellerProfileId or sellerProfileId == "" then
-            Send({Target = m.From, Data = "Error: Missing or invalid SellerProfileID"})
+
+        -- Validate Seller inputs with proper error handling
+        if not seller or seller == "" or string.len(seller) ~= 43 then
+            print(string.format("Error: Missing or invalid BazAR Profile ID. Sending NFT back to %s with quantity: %s", m.Sender, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = m.Sender,
+                ["X-Data"] = "Error: Missing or invalid BazAR Profile ID"
+            })
             return
         end
+
         if not minPrice or minPrice <= 0 then
-            Send({Target = m.From, Data = "Error: Invalid or missing minimum price"})
+            print(string.format("Error: Invalid or missing minimum price. Sending NFT back to %s with quantity: %s", sellerProfileId, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = sellerProfileId,
+                ["X-Data"] = "Error: Invalid or missing minimum price"
+            })
             return
         end
+
         if not expiry or expiry <= 0 then
-            Send({Target = m.From, Data = "Error: Invalid or missing auction expiry"})
+            print(string.format("Error: Invalid or missing auction expiry. Sending NFT back to %s with quantity: %s", sellerProfileId, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = sellerProfileId,
+                ["X-Data"] = "Error: Invalid or missing auction end date"
+            })
             return
         end
+
+        -- Minimum duration check
+        local currentTime = tonumber(m.Timestamp)
+        local duration = expiry - currentTime
+        if duration < MINIMUM_AUCTION_DURATION then
+            print(string.format("Error: Auction duration too short - minimum 23 hours. Sending NFT back to %s with quantity: %s", sellerProfileId, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = sellerProfileId,
+                ["X-Data"] = "Error: Auction duration must be at least 23 hours"
+            })
+            return
+        end
+
         if not quantity or quantity <= 0 then
-            Send({Target = m.From, Data = "Error: Invalid or missing auction quantity"})
+            print(string.format("Error: Invalid or missing auction quantity. Sending NFT back to %s with quantity: %s", sellerProfileId, quantity))
+            Send({
+                Target = NFT,
+                Action = "Transfer",
+                Quantity = tostring(quantity),
+                Recipient = sellerProfileId,
+                ["X-Data"] = "Error: Invalid or missing auction quantity"
+            })
             return
         end
 
-        -- Check for NFT transfer for this asset
-        if not Transfers[assetId] or Transfers[assetId].Sender ~= m.SellerProfileID then
-            Send({Target = m.From, Data = "Error: No NFT transfer found for this asset or unauthorized to create."})
-            return
-        end
-
-        -- Generate a unique auction ID using the AssetID and GlobalAuctionIndex
+        local assetId = m.From
         local auctionId = generateAuctionId(assetId)
 
-        -- Create the auction with validated data and SellerProfileID
-        Auctions[auctionId] = {
-            AssetID = assetId,           -- Store the AssetID for reference
-            MinPrice = minPrice,
-            Expiry = expiry,
-            Quantity = quantity,
-            Seller = m.From,             -- Record the seller's address
-            SellerProfileID = sellerProfileId  -- Add SellerProfileID
-        }
+        -- Insert auction into database
+        dbAdmin:apply([[
+            INSERT INTO Auctions (AuctionId, AssetID, MinPrice, Expiry, Quantity, Seller, SellerProfileID)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        ]], {auctionId, assetId, minPrice, expiry, quantity, seller, sellerProfileId})
         
-        Transfers[assetId] = nil
-        print("Auction created with ID: " .. auctionId)
-        Send({Target = m.From, Data = "Auction created successfully with ID: " .. auctionId})
+        print(string.format("Auction created with ID: %s Quantity: %d Expiry: %d", auctionId, quantity, expiry))
+        Send({
+            Target = seller,
+            Data = string.format("Auction created successfully with ID: %s Quantity: %d Expiry: %d", auctionId, quantity, expiry)
+        })
     end
 )
 
+-- PlaceBid handler
 Handlers.add(
     "PlaceBid",
     function(m)
-        return m.Action == "Place-Bid"
+        return m.Action == "Credit-Notice" and m.From == wAR
     end,
     function(m)
-        local auctionId = m.AuctionId
-        local bidderProfileId = m.BidderProfileID
-        local bidder = m.From
+        local auctionId = m.Tags["X-AuctionId"]
+        local bidderProfileId = m.Tags["X-BidderProfileID"]
+        local quantity = tonumber(m.Quantity)
+        local bidder = m.Sender
 
         -- Check for valid payment (bid)
-        local bidAmount = Payments[bidder]
+        local bidAmount = quantity
         if not bidAmount or bidAmount <= 0 then
             Send({Target = bidder, Data = "No valid payment found to place bid on auction: " .. auctionId})
             return
@@ -159,204 +170,254 @@ Handlers.add(
 
         -- Validate auctionId and bidderProfileId
         if not auctionId or auctionId == "" then
-            Send({Target = m.From, Data = "Error: Missing auction ID"})
             Send({
                 Target = wAR,
                 Action = "Transfer",
-                Recipient = m.From,
+                Recipient = m.Sender,
                 Quantity = tostring(bidAmount),
+                ["X-Data"] = "Error: Missing auction ID"
             })
-            Payments[m.From] = nil
             return
         end
 
-        if not bidderProfileId or bidderProfileId == "" then
-            Send({Target = m.From, Data = "Error: Missing or invalid BidderProfileID"})
+        if not bidderProfileId or bidderProfileId == "" or string.len(bidderProfileId) ~= 43 then
             Send({
                 Target = wAR,
                 Action = "Transfer",
-                Recipient = m.From,
+                Recipient = m.Sender,
                 Quantity = tostring(bidAmount),
+                ["X-Data"] = "Error: Missing or invalid BidderProfileID"
             })
-            Payments[m.From] = nil
             return
         end
 
-        -- Ensure the auction exists before checking the minimum price
-        local auction = Auctions[auctionId]
+        -- Check if auction exists
+        local auction = dbAdmin:select([[
+            SELECT * FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})[1]
+
         if not auction then
-            Send({Target = bidder, Data = "Auction does not exist: " .. auctionId})
             Send({
                 Target = wAR,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
+                ["X-Data"] = "Auction does not exist: " .. auctionId
             })
-            Payments[bidder] = nil
             return
         end
 
-        local minPrice = auction.MinPrice
-
-        -- Check if the bid is at least the minimum price
-        if bidAmount < minPrice then
+        -- Check minimum price
+        if bidAmount < auction.MinPrice then
             Send({
                 Target = wAR,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
+                ["X-Data"] = "Bid is less than the minimum required bid. Refunding: " .. tostring(bidAmount)
             })
-            Send({Target = bidder, Data = "Bid is less than the minimum required bid. Refunding: " .. tostring(bidAmount)})
-            Payments[bidder] = nil
             return
         end
 
-        -- Get the highest current bid for this auction
-        Bids[auctionId] = Bids[auctionId] or {}
-        local highestBid = nil
-        local highestBidIndex = nil
-        for i, bid in ipairs(Bids[auctionId]) do
-            if not highestBid or bid.Amount > highestBid.Amount then
-                highestBid = bid
-                highestBidIndex = i
-            end
-        end
+        -- Get highest bid
+        local highestBid = dbAdmin:select([[
+            SELECT * FROM Bids 
+            WHERE AuctionId = ? 
+            ORDER BY Amount DESC 
+            LIMIT 1;
+        ]], {auctionId})[1]
 
-        -- Check if the new bid is lower than the highest bid
+        -- Check if new bid is too low
         if highestBid and bidAmount <= highestBid.Amount then
             Send({
                 Target = wAR,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
-                Data = "Bid is lower than the current highest bid. Refunding."
+                ["X-Data"] = "Bid is lower than the current highest bid. Refunding: " .. tostring(bidAmount)
             })
-            Send({Target = bidder, Data = "Bid is lower than the current highest bid. Refunding: " .. tostring(bidAmount)})
-            Payments[bidder] = nil
             return
         end
 
-        -- Refund the previous highest bid if necessary
+        -- Refund previous highest bidder
         if highestBid then
             Send({
                 Target = wAR,
                 Action = "Transfer",
                 Recipient = highestBid.Bidder,
                 Quantity = tostring(highestBid.Amount),
-                Data = "Refund for previous highest bid on auction: " .. auctionId
+                ["X-Data"] = "Refund for previous highest bid on auction: " .. auctionId
             })
-            table.remove(Bids[auctionId], highestBidIndex)
+            
+            -- Remove old bid
+            dbAdmin:apply([[
+                DELETE FROM Bids
+                WHERE AuctionId = ? AND Bidder = ?;
+            ]], {auctionId, highestBid.Bidder})
         end
 
-        -- Place the new bid
-        table.insert(Bids[auctionId], {Bidder = bidder, Amount = bidAmount, BidderProfileID = bidderProfileId})
-        Payments[bidder] = nil
+        -- Insert new bid
+        dbAdmin:apply([[
+            INSERT INTO Bids (AuctionId, Bidder, Amount, BidderProfileID)
+            VALUES (?, ?, ?, ?);
+        ]], {auctionId, bidder, bidAmount, bidderProfileId})
 
         Send({Target = bidder, Data = "Bid placed successfully for auction: " .. auctionId})
     end
 )
 
-
-
--- Finalize Auction Function with BidderProfileID
 function finalizeAuction(auctionId, m)
-    if not Auctions[auctionId] then
-        Send({Target = m.From, Data = "Auction does not exist: " .. auctionId})
+    print("Starting finalization for auction: " .. auctionId)
+    
+    -- Get auction details first
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
+
+    if not auction then
+        print("Auction " .. auctionId .. " not found in database - skipping")
         return
     end
 
-    print("Finalizing auction: " .. auctionId)
+    local assetId = auction.AssetID
 
-    -- Find the highest bid
-    local highestBid = nil
-    if Bids[auctionId] then
-        for _, bid in ipairs(Bids[auctionId]) do
-            if not highestBid or bid.Amount > highestBid.Amount then
-                highestBid = bid
-            end
-        end
-    end
+    -- Check for bids first before anything else
+    local highestBid = dbAdmin:select([[
+        SELECT * FROM Bids WHERE AuctionId = ? ORDER BY Amount DESC LIMIT 1;
+    ]], {auctionId})[1]
 
     if highestBid then
-        print("Highest bidder for auction: " .. highestBid.Bidder)
-
-        -- Transfer NFT to the highest bidder's profile address (BidderProfileID)
+        -- Has winning bid
+        print(string.format("Auction won by %s with bid of %d", highestBid.Bidder, highestBid.Amount))
+        
+        -- Transfer NFT to winner
         Send({
-            Target = Auctions[auctionId].AssetID,
+            Target = assetId,
             Action = "Transfer",
-            Recipient = highestBid.BidderProfileID,  -- Use BidderProfileID to transfer the NFT
-            Quantity = tostring(Auctions[auctionId].Quantity),
-            Data = "NFT won in auction: " .. auctionId
+            Recipient = highestBid.BidderProfileID,
+            Quantity = tostring(auction.Quantity),
+            ["X-Data"] = "Won auction: " .. auctionId
         })
 
-        -- Transfer bid amount to the seller
+        local sellerAmount = math.floor(highestBid.Amount * 0.99)
+        local feeAmount = highestBid.Amount - sellerAmount
+        
+        -- Transfer payment to seller
         Send({
             Target = wAR,
             Action = "Transfer",
-            Recipient = Auctions[auctionId].Seller,
-            Quantity = tostring(highestBid.Amount),
-            Data = "Payment for auction: " .. auctionId
+            Recipient = auction.Seller,
+            Quantity = tostring(sellerAmount),
+            ["X-Data"] = "Payment for auction: " .. auctionId
         })
-
-        -- Refund other bidders
-        for _, bid in ipairs(Bids[auctionId]) do
-            if bid.Bidder ~= highestBid.Bidder then
-                Send({
-                    Target = wAR,
-                    Action = "Transfer",
-                    Recipient = bid.Bidder,
-                    Quantity = tostring(bid.Amount),
-                    Data = "Refund for auction: " .. auctionId
-                })
-            end
-        end
-
-        print("Auction finalized: " .. auctionId)
-        Send({Target = m.From, Data = "Auction finalized: " .. auctionId})
-    else
-        -- No valid bids were found, return the NFT to the original seller's profile address (SellerProfileID)
-        print("No valid bids found for auction: " .. auctionId)
+        
+        -- Pay auction fee of 1%
         Send({
-            Target = Auctions[auctionId].AssetID,
+            Target = wAR,
             Action = "Transfer",
-            Recipient = Auctions[auctionId].SellerProfileID,  -- Use SellerProfileID to return NFT to the seller
-            Quantity = tostring(Auctions[auctionId].Quantity),
-            Data = "No valid bids, returning NFT to seller for auction: " .. auctionId
+            Recipient = feeAccount,
+            Quantity = tostring(feeAmount),
+            ["X-Data"] = "Fee for auction: " .. auctionId
         })
 
-        Send({Target = Auctions[auctionId].Seller, Data = "No valid bids for auction: " .. auctionId .. ". NFT returned to seller."})
+        -- Notify parties
+        Send({
+            Target = auction.Seller,
+            Data = string.format("Your auction %s sold for %d wAR", auctionId, highestBid.Amount)
+        })
+        Send({
+            Target = highestBid.Bidder,
+            Data = string.format("You won auction %s! The NFT has been transferred to your profile.", auctionId)
+        })
+
+        HistoryCatalog(auctionId, "SOLD")
+        print("Auction Finalization Complete for SOLD auction: " .. auctionId)
+
+    else
+        -- No bids case
+        print(string.format("No bids - returning NFT to seller. Asset: %s, Recipient: %s, Quantity: %s", 
+            assetId, auction.SellerProfileID, auction.Quantity))
+            
+        Send({
+            Target = assetId,
+            Action = "Transfer",
+            Recipient = auction.SellerProfileID,
+            Quantity = tostring(auction.Quantity),
+            ["X-Data"] = "No valid bids, returning NFT to auction: " .. auctionId
+        })
+
+        Send({
+            Target = auction.Seller,
+            Data = "No valid bids for auction: " .. auctionId .. ". NFT returned to seller."
+        })
+
+        HistoryCatalog(auctionId, "EXPIRED")
+        print("Auction Finalization Complete for EXPIRED auction: " .. auctionId)
     end
 
-    -- Clean up auction and bids
-    Auctions[auctionId] = nil
-    Bids[auctionId] = nil
+    -- Clean up tables
+    dbAdmin:apply([[DELETE FROM Bids WHERE AuctionId = ?;]], {auctionId})
+    dbAdmin:apply([[DELETE FROM Auctions WHERE AuctionId = ?;]], {auctionId})
+    
+    print("Auction removed from Tables: " .. auctionId)
 end
 
--- Finalize Auction Handler
+-- Finalize Auction Handler remains the same
 Handlers.prepend(
     "FinalizeAuction",
     function(msg)
         return "continue"
     end,
     function(msg)
-        local currentTime = tonumber(msg.Timestamp)
-
-        -- Process auctions
-        for auctionId, auctionData in pairs(Auctions) do
-            if currentTime >= auctionData.Expiry then
-                finalizeAuction(auctionId, msg)
+        -- Check if tables exist first
+        local tables = dbAdmin:tables()
+        local hasAuctions = false
+        for _, tableName in ipairs(tables) do
+            if tableName == "Auctions" then
+                hasAuctions = true
+                break
             end
+        end
+        
+        if not hasAuctions then
+            print("No Auctions table found")
+            return
+        end
+
+        local currentTime = tonumber(msg.Timestamp)
+        if not currentTime then
+            print("Warning: Invalid timestamp in message")
+            return
+        end
+
+        -- Get expired auctions with additional logging
+        print("Checking for expired auctions at time: " .. currentTime)
+        
+        local expiredAuctions = dbAdmin:select([[
+            SELECT AuctionId FROM Auctions 
+            WHERE Expiry <= ?;
+        ]], {currentTime})
+
+        if #expiredAuctions == 0 then
+            print("No expired auctions found")
+            return
+        end
+
+        print("Found " .. #expiredAuctions .. " expired auctions")
+
+        -- Process each expired auction
+        for _, auction in ipairs(expiredAuctions) do
+            finalizeAuction(auction.AuctionId, msg)
         end
     end
 )
 
--- Cancel Auction Handler with SellerProfileID
+-- Cancel Auction Handler
 Handlers.add('CancelAuction', 
     function(m) 
         return m.Action == "Cancel-Auction" 
     end, 
     function(m)
-        -- Check if the auctionId is provided
         local auctionId = m.AuctionId
         if not auctionId or auctionId == "" then
             print("Error: Missing auction ID")
@@ -366,43 +427,170 @@ Handlers.add('CancelAuction',
 
         local requester = m.From
 
-        -- Check if the auction exists
-        if not Auctions[auctionId] then
+        -- Get auction
+        local auction = dbAdmin:select([[
+            SELECT * FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})[1]
+
+        if not auction then
             print("Auction does not exist: " .. auctionId)
             Send({Target = requester, Data = "Error: Auction does not exist: " .. auctionId})
             return
         end
 
-        -- Check if the requester is the owner of the auction
-        if Auctions[auctionId].Seller ~= requester then
+        -- Check ownership
+        if auction.Seller ~= requester then
             print("Unauthorized cancel attempt by: " .. requester)
             Send({Target = requester, Data = "Error: You are not authorized to cancel this auction."})
             return
         end
 
-        -- Check if there are any bids for this auction
-        if Bids[auctionId] and #Bids[auctionId] > 0 then
+        -- Check for bids
+        local bidsCount = dbAdmin:select([[
+            SELECT COUNT(*) as count FROM Bids WHERE AuctionId = ?;
+        ]], {auctionId})[1].count
+
+        if bidsCount > 0 then
             print("Cancel attempt failed. Bids exist for auction: " .. auctionId)
             Send({Target = requester, Data = "Error: Auction has active bids and cannot be canceled."})
             return
         end
 
-        -- Retrieve the quantity of the asset before canceling
-        local quantity = Auctions[auctionId].Quantity
-
-        -- Refund the NFT(s) to the seller's profile address (SellerProfileID)
+        -- Return NFT to seller
         Send({
-            Target = Auctions[auctionId].AssetID,  -- The AssetId is the process ID of the NFT
+            Target = auction.AssetID,
             Action = "Transfer",
-            Recipient = Auctions[auctionId].SellerProfileID,  -- Send it back to the seller's profile
-            Quantity = tostring(quantity),  -- Use the quantity from the Auctions table
-            Data = "Auction canceled, NFT(s) refunded to seller profile."
+            Recipient = auction.SellerProfileID,
+            Quantity = tostring(auction.Quantity),
+            ["X-Data"] = "Auction canceled, NFT(s) refunded to seller profile."
         })
 
-        -- Cancel the auction
-        Auctions[auctionId] = nil
-        print("Auction canceled: " .. auctionId)
+        -- Delete auction
+        dbAdmin:apply([[
+            DELETE FROM Auctions WHERE AuctionId = ?;
+        ]], {auctionId})
 
+        print("Auction canceled: " .. auctionId)
         Send({Target = requester, Data = "Auction canceled successfully: " .. auctionId .. " and NFT(s) refunded."})
     end
 )
+
+-- Helper function to catalog completed auctions
+function HistoryCatalog(auctionId, status)
+    -- Get full auction details
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
+
+    if not auction then
+        print("Warning: Unable to catalog auction history - auction not found: " .. auctionId)
+        return
+    end
+
+    -- Get winning bid if exists
+    local winningBid = dbAdmin:select([[
+        SELECT * FROM Bids 
+        WHERE AuctionId = ? 
+        ORDER BY Amount DESC 
+        LIMIT 1;
+    ]], {auctionId})[1]
+
+    -- Set bid-related values
+    local finalPrice = 0
+    local winner = nil
+    local winnerProfileId = nil
+    
+    if winningBid then
+        finalPrice = winningBid.Amount
+        winner = winningBid.Bidder
+        winnerProfileId = winningBid.BidderProfileID
+    end
+
+    -- Prepare history record
+    local historyRecord = {
+        AuctionId = auction.AuctionId,
+        AssetID = auction.AssetID,
+        MinPrice = auction.MinPrice,
+        Expiry = auction.Expiry,
+        Quantity = auction.Quantity,
+        Seller = auction.Seller,
+        SellerProfileID = auction.SellerProfileID,
+        Status = status,
+        FinalPrice = finalPrice,
+        Winner = winner,
+        WinnerProfileID = winnerProfileId
+    }
+
+    -- Send to History process
+    Send({
+        Target = History,
+        Action = "Record-Auction",
+        Data = json.encode(historyRecord)
+    })
+    
+    print("Auction history recorded for: " .. auctionId .. " with status: " .. status)
+end
+
+
+
+
+
+--Master function to cancel aucitons and refund NFTs/bids
+function masterCancel(auctionId)
+
+    -- Get auction details
+    local auction = dbAdmin:select([[
+        SELECT * FROM Auctions WHERE AuctionId = ?;
+    ]], {auctionId})[1]
+
+    if not auction then
+        print("Error: Auction not found: " .. auctionId)
+        return
+    end
+
+    -- Check for highest bid first
+    local highestBid = dbAdmin:select([[
+        SELECT * FROM Bids 
+        WHERE AuctionId = ? 
+        ORDER BY Amount DESC 
+        LIMIT 1;
+    ]], {auctionId})[1]
+
+    -- Return NFT to seller
+    Send({
+        Target = auction.AssetID,
+        Action = "Transfer",
+        Recipient = auction.SellerProfileID,
+        Quantity = tostring(auction.Quantity),
+        ["X-Data"] = "Auction force cancelled by owner, NFT returned"
+    })
+
+    print(string.format("NFT returned to seller profile %s with quantity %s", 
+        auction.SellerProfileID, 
+        auction.Quantity
+    ))
+
+    -- If there was a bid, refund it
+    if highestBid then
+        Send({
+            Target = wAR,
+            Action = "Transfer",
+            Recipient = highestBid.Bidder,
+            Quantity = tostring(highestBid.Amount),
+            ["X-Data"] = "Refund for cancelled auction: " .. auctionId
+        })
+
+        print(string.format("Bid refunded to bidder %s with amount %s wAR", 
+            highestBid.Bidder,
+            highestBid.Amount
+        ))
+    else
+        print("No active bids to refund")
+    end
+
+    -- Clean up the database
+    dbAdmin:apply([[DELETE FROM Bids WHERE AuctionId = ?;]], {auctionId})
+    dbAdmin:apply([[DELETE FROM Auctions WHERE AuctionId = ?;]], {auctionId})
+
+    print("Auction " .. auctionId .. " has been fully cancelled and removed from database")
+end
