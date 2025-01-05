@@ -5,6 +5,94 @@
     font-style: normal;
 }
 
+@-moz-document url-prefix() {
+    .modal-container {
+        max-height: 80vh;
+        overflow-y: auto;
+        margin: 0;
+        position: relative;
+        width: auto;
+        max-width: 960px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-content {
+        display: flex;
+
+        justify-content: center;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 0px;
+    }
+
+    .modal .close {
+        position: absolute;
+        top: 5px;  /* Adjust these values as needed */
+        right: 20px;
+        color: white;
+        font-size: 26px;
+        font-weight: bold;
+    }
+
+    .auction-image {
+        flex: 0 0 auto;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+    }
+
+
+    .auction-details h3 {
+        text-decoration: underline;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        font-weight: 200;
+        font-size: 32px;
+        line-height: 1;  /* Force single line height */
+        height: auto;
+    }
+
+    .auction-box {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+    }
+
+    .bid-section {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 0px;
+        margin-top: 0px;
+    }
+
+    .bid-section .bidAmountInput {
+        flex: 0 1 auto;
+        width: auto;
+        margin-top: 10px;
+        min-width: 100px;
+        margin-right: 5px;
+    }
+
+    #placeBidButton {
+        flex: 0 0 auto;
+
+    }
+
+    .auction-countdown {
+        width: 100%;
+        text-align: center;
+        top: 0;
+        padding: 0;
+        margin: 0px;
+        border-bottom: solid 2px white;
+    }
+
+}
 
 body, html {
     z-index: 2;
@@ -136,6 +224,7 @@ body, html {
     padding: 20px;
     margin: 0 auto;  /* Center the entire container */
     width: 80%;  /* Limit the width for better alignment */
+    z-index: -1;
 }
 
 .form-container {
@@ -146,6 +235,7 @@ body, html {
     border-radius: 15px;
     background-color: #8c52ff;
     display: none;
+    z-index: 1;
 }
 
 .form-group {   

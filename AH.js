@@ -269,13 +269,10 @@ async function fetchLiveAuctions() {
     try {
         console.log("Fetching live auctions...");
 
-        const signer = createDataItemSigner(window.arweaveWallet);
-
         // Fetch auction data using a dryrun
         const auctionResponse = await dryrun({
             process: auctionProcessId,
             tags: [{ name: "Action", value: "Info" }],
-            signer: signer,
         });
 
         console.log("Auction info dryrun response:", auctionResponse);
@@ -439,45 +436,51 @@ async function displayAuctions(page, forcedAuctions = null) {
 }
 
 async function loadAuctionDetails(auction, thumbnailElement) {
-    const assetId = auction.AssetID;
-    let connectedWallet = null;
-
     try {
-        if (typeof window.arweaveWallet !== 'undefined') {
-            connectedWallet = await window.arweaveWallet.getActiveAddress();
+        // Remove wallet connection attempt entirely
+        const assetId = auction.AssetID;
+
+        // Start image loading immediately
+        const imageUrl = `https://arweave.net/${assetId}`;
+        const imgContainer = thumbnailElement.querySelector('div');
+        if (imgContainer) {
+            imgContainer.innerHTML = `<img src="${imageUrl}" alt="Loading..." class="thumbnail-image" 
+                style="height: 200px; object-fit: contain;" 
+                onerror="this.src='placeholder.png'">`;
         }
-    } catch (error) {
-        console.log("No wallet connected");
-    }
 
-    // Start image loading immediately
-    const imageUrl = `https://arweave.net/${assetId}`;
-    const imgContainer = thumbnailElement.querySelector('div');
-    if (imgContainer) {
-        imgContainer.innerHTML = `<img src="${imageUrl}" alt="Loading..." class="thumbnail-image" 
-            style="height: 200px; object-fit: contain;" 
-            onerror="this.src='placeholder.png'">`;
-    }
+        // Use a default name in case of failure
+        let auctionName = assetId;
 
-    // Separately fetch the name and other details
-    try {
-        const { name: auctionName } = await getAuctionDetails(auction.auctionId, assetId);
-        
-        // Update just the name and details, leaving image alone
+        try {
+            // Fetch auction details without wallet dependency
+            const { name } = await getAuctionDetails(auction.auctionId, assetId);
+            
+            if (name) {
+                auctionName = name;
+            }
+        } catch (error) {
+            console.warn(`Failed to get auction details for ${assetId}:`, error);
+        }
+
+        // Update details, ensuring it always runs
         updateThumbnailDetails(thumbnailElement, {
             name: auctionName,
             image: imageUrl,
             auction: auction,
-            connectedWallet: connectedWallet
+            connectedWallet: null  // Always pass null
         });
 
     } catch (error) {
-        console.error(`Error loading auction details for ${assetId}:`, error);
+        console.error(`Unexpected error in loadAuctionDetails for ${auction.AssetID}:`, error);
+        
+        // Even if everything fails, try to show something
+        const imageUrl = `https://arweave.net/${auction.AssetID}`;
         updateThumbnailDetails(thumbnailElement, {
             name: 'Error loading',
             image: imageUrl,
             auction: auction,
-            connectedWallet: connectedWallet
+            connectedWallet: null
         });
     }
 }
@@ -546,29 +549,96 @@ function updatePaginationControls(paginationControls, currentPage, totalPages) {
 document.addEventListener('DOMContentLoaded', async () => {
     await fetchLiveAuctions();
 
-    const hash = window.location.hash.slice(1);
-    if (hash.startsWith('auction/')) {
-        isHashUpdateInternal = true; // Prevent hashchange listener
-        const auctionId = hash.split('/')[1];
-        const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
-        if (auction) {
-            const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
-
-            openAuctionDetails(
-                auctionName,
-                auctionImage,
-                (auction.MinPrice / 1e12).toFixed(6),
-                auction.highestBid,
-                auction.Seller,
-                auction.Expiry,
-                auction.auctionId,
-                null,
-                await window.arweaveWallet.getActiveAddress(),
-                auction.Quantity,
-                auction.latestBidder
-            );
+    // Detect if the browser is Firefox
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    // Handle URL hash differently for Firefox
+    if (isFirefox) {
+        const hash = window.location.hash.slice(1);
+        if (hash.startsWith('auction/')) {
+            console.log('Firefox detected, handling hash:', hash);
+            // Increase delay for Firefox to ensure auction data is loaded
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const auctionId = hash.split('/')[1];
+            console.log('Looking for auction:', auctionId);
+            console.log('Available auctions:', allLiveAuctions);
+            
+            const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
+            console.log('Found auction:', auction);
+            
+            if (auction) {
+                try {
+                    console.log('Getting auction details...');
+                    const { name: auctionName, image: auctionImage } = 
+                        await getAuctionDetails(auction.auctionId, auction.AssetID);
+                    
+                    const modal = document.getElementById("auctionDetailsModal");
+                    if (modal) {
+                        console.log('Opening auction details...');
+                        
+                        // Check if window.arweaveWallet exists before using it
+                        let connectedWallet = null;
+                        if (typeof window.arweaveWallet !== 'undefined') {
+                            try {
+                                connectedWallet = await window.arweaveWallet.getActiveAddress();
+                            } catch (error) {
+                                console.log("No wallet connected");
+                            }
+                        }
+                        
+                        await openAuctionDetails(
+                            auctionName,
+                            auctionImage,
+                            (auction.MinPrice / 1e12).toFixed(6),
+                            auction.highestBid,
+                            auction.Seller,
+                            auction.Expiry,
+                            auction.auctionId,
+                            null,
+                            connectedWallet,
+                            auction.Quantity,
+                            auction.latestBidder
+                        );
+                        // Force modal display after a short delay
+                        setTimeout(() => {
+                            modal.style.display = "block";
+                        }, 100);
+                    } else {
+                        console.error('Modal element not found');
+                    }
+                } catch (error) {
+                    console.error('Error opening auction:', error);
+                }
+            } else {
+                console.log('Auction not found in allLiveAuctions');
+            }
         }
-        setTimeout(() => isHashUpdateInternal = false, 300);
+    } else {
+        // Chrome handling remains the same
+        const hash = window.location.hash.slice(1);
+        if (hash.startsWith('auction/')) {
+            isHashUpdateInternal = true; // Prevent hashchange listener
+            const auctionId = hash.split('/')[1];
+            const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
+            if (auction) {
+                const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
+
+                openAuctionDetails(
+                    auctionName,
+                    auctionImage,
+                    (auction.MinPrice / 1e12).toFixed(6),
+                    auction.highestBid,
+                    auction.Seller,
+                    auction.Expiry,
+                    auction.auctionId,
+                    null,
+                    await window.arweaveWallet.getActiveAddress(),
+                    auction.Quantity,
+                    auction.latestBidder
+                );
+            }
+            setTimeout(() => isHashUpdateInternal = false, 100);
+        }
     }
 });
 
