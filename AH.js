@@ -546,36 +546,80 @@ function updatePaginationControls(paginationControls, currentPage, totalPages) {
     });
 }
 
+let isHashUpdateInternal = false;
+async function findAuctionAcrossAllSources(auctionId) {
+    // First, check live auctions
+    const liveAuction = allLiveAuctions.find(a => a.auctionId === auctionId);
+    if (liveAuction) {
+        return { 
+            status: 'live', 
+            auction: liveAuction 
+        };
+    }
+
+    // If not in live auctions, check history
+    try {
+        const signer = createDataItemSigner(window.arweaveWallet);
+        const historyResponse = await dryrun({
+            process: historyProcessId,
+            tags: [{ name: "Action", value: "Info" }],
+            signer: signer
+        });
+
+        if (historyResponse?.Messages?.length > 0) {
+            for (const message of historyResponse.Messages) {
+                const historyDataTag = message.Tags.find(tag => tag.name === "History");
+                if (historyDataTag) {
+                    const historyData = JSON.parse(historyDataTag.value);
+                    const historyAuction = historyData.find(entry => entry.AuctionId === auctionId);
+                    
+                    if (historyAuction) {
+                        return { 
+                            status: 'history', 
+                            auction: {
+                                ...historyAuction,
+                                formattedPrice: historyAuction.FinalPrice > 0 
+                                    ? (historyAuction.FinalPrice / 1e12).toFixed(6) + " wAR" 
+                                    : "No Sale"
+                            }
+                        };
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error checking auction history:", error);
+    }
+
+    // If not in history, return null
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await fetchLiveAuctions();
 
     // Detect if the browser is Firefox
     const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-    // Handle URL hash differently for Firefox
-    if (isFirefox) {
-        const hash = window.location.hash.slice(1);
-        if (hash.startsWith('auction/')) {
-            console.log('Firefox detected, handling hash:', hash);
-            // Increase delay for Firefox to ensure auction data is loaded
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const auctionId = hash.split('/')[1];
-            console.log('Looking for auction:', auctionId);
-            console.log('Available auctions:', allLiveAuctions);
-            
-            const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
-            console.log('Found auction:', auction);
-            
-            if (auction) {
+    
+    // Handle URL hash
+    const hash = window.location.hash.slice(1);
+    if (hash.startsWith('auction/')) {
+        const auctionId = hash.split('/')[1];
+        
+        // Increase delay to ensure auction data is loaded
+        await new Promise(resolve => setTimeout(resolve, isFirefox ? 1000 : 100));
+        
+        // Find auction across all sources
+        const auctionSource = await findAuctionAcrossAllSources(auctionId);
+        
+        if (auctionSource) {
+            if (auctionSource.status === 'live') {
                 try {
-                    console.log('Getting auction details...');
                     const { name: auctionName, image: auctionImage } = 
-                        await getAuctionDetails(auction.auctionId, auction.AssetID);
+                        await getAuctionDetails(auctionSource.auction.auctionId, auctionSource.auction.AssetID);
                     
                     const modal = document.getElementById("auctionDetailsModal");
                     if (modal) {
-                        console.log('Opening auction details...');
-                        
                         // Check if window.arweaveWallet exists before using it
                         let connectedWallet = null;
                         if (typeof window.arweaveWallet !== 'undefined') {
@@ -589,16 +633,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await openAuctionDetails(
                             auctionName,
                             auctionImage,
-                            (auction.MinPrice / 1e12).toFixed(6),
-                            auction.highestBid,
-                            auction.Seller,
-                            auction.Expiry,
-                            auction.auctionId,
+                            (auctionSource.auction.MinPrice / 1e12).toFixed(6),
+                            auctionSource.auction.highestBid,
+                            auctionSource.auction.Seller,
+                            auctionSource.auction.Expiry,
+                            auctionSource.auction.auctionId,
                             null,
                             connectedWallet,
-                            auction.Quantity,
-                            auction.latestBidder
+                            auctionSource.auction.Quantity,
+                            auctionSource.auction.latestBidder
                         );
+                        
                         // Force modal display after a short delay
                         setTimeout(() => {
                             modal.style.display = "block";
@@ -609,41 +654,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (error) {
                     console.error('Error opening auction:', error);
                 }
-            } else {
-                console.log('Auction not found in allLiveAuctions');
+            } else if (auctionSource.status === 'history') {
+                // Redirect to history page
+                window.location = `history.html#history/${auctionId}`;
+                return;
             }
-        }
-    } else {
-        // Chrome handling remains the same
-        const hash = window.location.hash.slice(1);
-        if (hash.startsWith('auction/')) {
-            isHashUpdateInternal = true; // Prevent hashchange listener
-            const auctionId = hash.split('/')[1];
-            const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
-            if (auction) {
-                const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
-
-                openAuctionDetails(
-                    auctionName,
-                    auctionImage,
-                    (auction.MinPrice / 1e12).toFixed(6),
-                    auction.highestBid,
-                    auction.Seller,
-                    auction.Expiry,
-                    auction.auctionId,
-                    null,
-                    await window.arweaveWallet.getActiveAddress(),
-                    auction.Quantity,
-                    auction.latestBidder
-                );
-            }
-            setTimeout(() => isHashUpdateInternal = false, 100);
+        } else {
+            // Auction not found in any source
+            showToast("This auction does not exist or has been removed.");
+            window.location.hash = ''; // Reset hash
         }
     }
 });
-
-
-let isHashUpdateInternal = false; // Tracks whether hash change is internal
 
 window.addEventListener('hashchange', async () => {
     if (isHashUpdateInternal) return; // Ignore internal hash changes
@@ -655,27 +677,51 @@ window.addEventListener('hashchange', async () => {
         modal.style.display = "none";
     } else if (hash.startsWith('auction/')) {
         const auctionId = hash.split('/')[1];
-        const auction = allLiveAuctions.find(a => a.auctionId === auctionId);
-        if (auction) {
-            const { name: auctionName, image: auctionImage } = await getAuctionDetails(auction.auctionId, auction.AssetID);
+        
+        // Find auction across all sources
+        const auctionSource = await findAuctionAcrossAllSources(auctionId);
+        
+        if (auctionSource) {
+            if (auctionSource.status === 'live') {
+                try {
+                    const { name: auctionName, image: auctionImage } = 
+                        await getAuctionDetails(auctionSource.auction.auctionId, auctionSource.auction.AssetID);
 
-            openAuctionDetails(
-                auctionName,
-                auctionImage,
-                (auction.MinPrice / 1e12).toFixed(6),
-                auction.highestBid,
-                auction.Seller,
-                auction.Expiry,
-                auction.auctionId,
-                null,
-                await window.arweaveWallet.getActiveAddress(),
-                auction.Quantity,
-                auction.latestBidder
-            );
+                    let connectedWallet = null;
+                    try {
+                        connectedWallet = typeof window.arweaveWallet !== 'undefined' 
+                            ? await window.arweaveWallet.getActiveAddress() 
+                            : null;
+                    } catch {}
+
+                    await openAuctionDetails(
+                        auctionName,
+                        auctionImage,
+                        (auctionSource.auction.MinPrice / 1e12).toFixed(6),
+                        auctionSource.auction.highestBid,
+                        auctionSource.auction.Seller,
+                        auctionSource.auction.Expiry,
+                        auctionSource.auction.auctionId,
+                        null,
+                        connectedWallet,
+                        auctionSource.auction.Quantity,
+                        auctionSource.auction.latestBidder
+                    );
+                } catch (error) {
+                    console.error('Error opening auction:', error);
+                }
+            } else if (auctionSource.status === 'history') {
+                // Redirect to history page
+                window.location = `history.html#history/${auctionId}`;
+                return;
+            }
+        } else {
+            // Auction not found in any source
+            showToast("This auction does not exist or has been removed.");
+            window.location.hash = ''; // Reset hash
         }
     }
 });
-
 
 document.getElementById('auctionSearch').addEventListener('input', async function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
