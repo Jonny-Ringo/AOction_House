@@ -1,4 +1,4 @@
-import { createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.59/dist/browser.js";
+import { connect, createDataItemSigner, dryrun, message, result, results } from "https://unpkg.com/@permaweb/aoconnect@0.0.69/dist/browser.js";
 import { knownCollections } from './collections.js';
 import { Processes } from './processes.js';
 
@@ -312,7 +312,7 @@ async function fetchLiveAuctions() {
                                 (max, bid) => (bid.Amount > max.Amount ? bid : max),
                                 auctionBids[0]
                             );
-                            highestBid = (highestBidData.Amount / 1e12).toFixed(6) + " wAR";
+                            highestBid = (highestBidData.Amount / 1e12).toFixed(6) + " AO";
                             latestBidder = highestBidData.Bidder;
                         }
 
@@ -372,7 +372,7 @@ function formatBidAmount(amount) {
     const formattedNumber = parsedAmount % 1 === 0 ? 
         parsedAmount.toString() : 
         parsedAmount.toFixed(6).replace(/\.?0+$/, '');
-    return `${formattedNumber} wAR`;
+    return `${formattedNumber} AO`;
 }
 
 function formatStartingPrice(price) {
@@ -419,7 +419,7 @@ async function displayAuctions(page, forcedAuctions = null) {
             </div>
             <h3>Loading...</h3>
             <p>${auction.highestBid === "No Bids" ? 
-                `Start Price: ${formatStartingPrice(startingPrice)} wAR` : 
+                `Start Price: ${formatStartingPrice(startingPrice)} AO` : 
                 `Current Bid: ${formattedHighestBid}`}</p>
             <p>End: ${new Date(parseInt(auction.Expiry || "0")).toLocaleDateString()} 
                 ${new Date(parseInt(auction.Expiry || "0")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -504,7 +504,7 @@ function updateThumbnailDetails(thumbnailElement, { name, image, auction, connec
     const bidElement = thumbnailElement.querySelector('p:not(:last-child)');
     if (bidElement) {
         if (auction.highestBid === "No Bids") {
-            bidElement.textContent = `Start Price: ${formatStartingPrice(minBid)} wAR`;
+            bidElement.textContent = `Start Price: ${formatStartingPrice(minBid)} AO`;
         } else {
             const formattedBid = formatBidAmount(auction.highestBid);
             bidElement.textContent = `Current Bid: ${formattedBid}`;
@@ -579,7 +579,7 @@ async function findAuctionAcrossAllSources(auctionId) {
                             auction: {
                                 ...historyAuction,
                                 formattedPrice: historyAuction.FinalPrice > 0 
-                                    ? (historyAuction.FinalPrice / 1e12).toFixed(6) + " wAR" 
+                                    ? (historyAuction.FinalPrice / 1e12).toFixed(6) + " AO" 
                                     : "No Sale"
                             }
                         };
@@ -976,7 +976,7 @@ async function openAuctionDetails(auctionName, auctionImageURL, minBid, highestB
                 <h3 id="auctionName">${auctionName}</h3> 
                 <div class= "auction-box">
                 <p class="auction-quantity">Quantity: ${modalQuantity}</p>
-                <p class="auction-price">Start Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} wAR</span></p>
+                <p class="auction-price">Start Price: <span>${Number(minBid).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})} AO</span></p>
                 <p class="auction-bid">Current Bid: <span>${formattedHighestBid}</span></p>
 
                 <!-- Bid Section -->
@@ -1161,7 +1161,7 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     console.log("Entered bid amount:", enteredBidAmount);
 
     if (!bidAmountInput || enteredBidAmount < 0.000001) {
-        showToast("Error: Minimum bid is 0.000001 wAR.");
+        showToast("Error: Minimum bid is 0.000001 AO.");
         console.log("Bid rejected: Entered bid is less than minimum bid requirement.");
         return;
     }
@@ -1169,7 +1169,7 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     // Check maximum bid
     const MAX_SAFE_PRICE = 1e6; // 1 million
     if (enteredBidAmount > MAX_SAFE_PRICE) {
-        showToast(`Bid too high. Maximum allowed bid is ${MAX_SAFE_PRICE.toLocaleString()} wAR`);
+        showToast(`Bid too high. Maximum allowed bid is ${MAX_SAFE_PRICE.toLocaleString()} AO`);
         return;
     }
 
@@ -1192,15 +1192,15 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
     // Compare entered bid with the minimum required bid
     if (enteredBidAmount < minimumRequiredBid) {
         const errorMessage = highestBidValue !== 0
-            ? `Error: Bid must be at least ${minimumRequiredBid.toFixed(6)} wAR (1% higher than current bid).`
-            : `Error: Bid must be at least ${minBid} wAR.`;
+            ? `Error: Bid must be at least ${minimumRequiredBid.toFixed(6)} AO (1% higher than current bid).`
+            : `Error: Bid must be at least ${minBid} AO.`;
 
         showToast(errorMessage);
-        console.log(`Bid rejected: Entered bid (${enteredBidAmount} wAR) is not valid.`);
+        console.log(`Bid rejected: Entered bid (${enteredBidAmount} AO) is not valid.`);
         return;  // Prevent further execution if bid is too low
     }
 
-    // Convert the bid to the correct 12-decimal format for wAR
+    // Convert the bid to the correct 12-decimal format for AO
     const bidAmount = (enteredBidAmount * 1e12).toFixed(0); // Use toFixed to eliminate precision issues
     console.log("Converted bid amount (12-decimal format):", bidAmount);
 
@@ -1224,12 +1224,12 @@ async function placeBid(auctionId, bidderProfileId, auctionProcessId, minBid, hi
 
         console.log("Proceeding to send the bid transaction...");
 
-        // Step 2: Transfer the bid amount (wAR transfer)
+        // Step 2: Transfer the bid amount (AO transfer)
         const transferResponse = await message({
-            process: "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",  // wAR process
+            process: "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",  // AO process
             tags: [
                 { name: "Action", value: "Transfer" },
-                { name: "Target", value: "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" }, // wAR static address
+                { name: "Target", value: "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" }, // AO static address
                 { name: "Recipient", value: auctionProcessId },  // Auction process ID
                 { name: "Quantity", value: bidAmount },  // Bid amount in 12-decimal format
                 { name: "X-AuctionId", value: auctionId },  // Auction ID
@@ -1622,7 +1622,7 @@ async function listAsset(availableQuantity) {
             // Add validation for maximum price
             const MAX_SAFE_PRICE = 1e6; // 1 million
             if (parseFloat(priceInput) > MAX_SAFE_PRICE) {
-                showToast(`Price too high. Maximum allowed price is ${MAX_SAFE_PRICE.toLocaleString()}wAR`);
+                showToast(`Price too high. Maximum allowed price is ${MAX_SAFE_PRICE.toLocaleString()}AO`);
                 return;
             }
     const durationInput = document.getElementById("durationDropdown").value;
@@ -1682,7 +1682,7 @@ async function listAsset(availableQuantity) {
                 const resultsOut = await results({
                     process: auctionProcessId,
                     sort: "DESC",
-                    limit: 3
+                    limit: 10
                 });
 
                 console.log("Checking response:", JSON.stringify(resultsOut, null, 2));

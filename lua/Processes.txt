@@ -1,13 +1,9 @@
-----main testnet process-----
+----Proto testnet----
+auctionProcessID = "2qwaGH5SjDj02ufV_MkclbIbPrLzPqROAuufQF7nw2I"
 
-historyProcessId: "hJ02zSm_V-KLAiljFZo2xg5g5JEyKGXC0F0l--fRq5k"
+History = "oXVMt0wcUwMbEIhVrNbJHSNWQOv26IAOPQ_C3SpOwUg"
 
-auctionProcessId: "CxO7svFyjmiK8e5pr19-Y5ieB84pKYNiFq-q078W8bo"
-
-(Cron5)
-Cron Forwarding = "GUL03UTWE9Tvf5kIigDmUjQnUxI_wsFBKbs5zYS73bE"
-
-
-
+(Cron3)
+Cron Forwarding = "V9yGrQF6b7pOoWQa7fY-Xt7k015ekyI0Ag4UbqFKdJI"
 
 
