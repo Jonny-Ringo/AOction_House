@@ -4,7 +4,8 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-AuctionHouse = "CxO7svFyjmiK8e5pr19-Y5ieB84pKYNiFq-q078W8bo"
+AuctionHousewAR = "w1HOBDLHByEPTVTdny3XzbWk6R6FAz9h0KQgDBdrP1w"
+AuctionHouseAO = "xKzMOikgxWcz3SjxwKJwrI5D5jkl2eY5_n8k0WL4s2c"
 MAX_HISTORY_RECORDS = 2000
 
 
@@ -36,7 +37,7 @@ Handlers.add(
     "RecordAuction",
     -- Only process messages from the authorized auction house with the correct action
     function(m)
-        return m.From == AuctionHouse and m.Action == "Record-Auction"
+        return m.From == AuctionHousewAR or AuctionHouseAO and m.Action == "Record-Auction"
     end,
     function(msg)
         -- Decode the JSON data from the auction house

@@ -255,7 +255,7 @@ async function fetchHistoryCatalog() {
                     entries.push(...historyData.map(entry => ({
                         ...entry,
                         formattedPrice: entry.FinalPrice > 0 ? 
-                            (entry.FinalPrice / 1e12).toFixed(6) + " wAR" : "No Sale",
+                            (entry.FinalPrice / 1e12).toFixed(6) + " AO" : "No Sale",
                         timestamp: new Date(entry.Expiry).toLocaleString(),
                         AssetName: null  // Initialize with null, will be loaded progressively
                     })));
@@ -357,7 +357,7 @@ function hideLoadingIndicator() {
 
 
 function formatPrice(price) {
-    return Number((price / 1e12).toFixed(6)).toString() + " wAR";
+    return Number((price / 1e12).toFixed(6)).toString() + " AO";
 }
 
 // Track the currently displayed page to avoid race conditions

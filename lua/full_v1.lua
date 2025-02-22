@@ -5,8 +5,9 @@ local sqlite = require('lsqlite3')
 Db = Db or sqlite.open_memory()
 dbAdmin = require('@rakis/DbAdmin').new(Db)
 
-History = "hJ02zSm_V-KLAiljFZo2xg5g5JEyKGXC0F0l--fRq5k"
+History = "oXVMt0wcUwMbEIhVrNbJHSNWQOv26IAOPQ_C3SpOwUg"
 wAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
+AO = "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc"
 feeAccount = "TjXwUoRIxHbvFkkA47eMKehHWoKaRZd9O1JVNBrfbnA"
 
 GlobalAuctionIndex = GlobalAuctionIndex or 0  -- Start as a number to be used in the key
@@ -44,7 +45,7 @@ Handlers.add('info',
 Handlers.add(
     "CreateAuction",
     function(m)
-        return m.Action == "Credit-Notice" and m.From ~= wAR
+        return m.Action == "Credit-Notice" and m.From ~= AO
     end,
     function(m)
         local minPrice = tonumber(m.Tags["X-MinPrice"])
@@ -153,7 +154,7 @@ Handlers.add(
 Handlers.add(
     "PlaceBid",
     function(m)
-        return m.Action == "Credit-Notice" and m.From == wAR
+        return m.Action == "Credit-Notice" and m.From == AO
     end,
     function(m)
         local auctionId = m.Tags["X-AuctionId"]
@@ -171,7 +172,7 @@ Handlers.add(
         -- Validate auctionId and bidderProfileId
         if not auctionId or auctionId == "" then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = m.Sender,
                 Quantity = tostring(bidAmount),
@@ -182,7 +183,7 @@ Handlers.add(
 
         if not bidderProfileId or bidderProfileId == "" or string.len(bidderProfileId) ~= 43 then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = m.Sender,
                 Quantity = tostring(bidAmount),
@@ -198,7 +199,7 @@ Handlers.add(
 
         if not auction then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
@@ -210,7 +211,7 @@ Handlers.add(
         -- Check minimum price
         if bidAmount < auction.MinPrice then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
@@ -230,7 +231,7 @@ Handlers.add(
         -- Check if new bid is too low
         if highestBid and bidAmount <= highestBid.Amount then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = bidder,
                 Quantity = tostring(bidAmount),
@@ -242,7 +243,7 @@ Handlers.add(
         -- Refund previous highest bidder
         if highestBid then
             Send({
-                Target = wAR,
+                Target = AO,
                 Action = "Transfer",
                 Recipient = highestBid.Bidder,
                 Quantity = tostring(highestBid.Amount),
@@ -304,7 +305,7 @@ function finalizeAuction(auctionId, m)
         
         -- Transfer payment to seller
         Send({
-            Target = wAR,
+            Target = AO,
             Action = "Transfer",
             Recipient = auction.Seller,
             Quantity = tostring(sellerAmount),
@@ -313,7 +314,7 @@ function finalizeAuction(auctionId, m)
         
         -- Pay auction fee of 1%
         Send({
-            Target = wAR,
+            Target = AO,
             Action = "Transfer",
             Recipient = feeAccount,
             Quantity = tostring(feeAmount),
@@ -323,7 +324,7 @@ function finalizeAuction(auctionId, m)
         -- Notify parties
         Send({
             Target = auction.Seller,
-            Data = string.format("Your auction %s sold for %d wAR", auctionId, highestBid.Amount)
+            Data = string.format("Your auction %s sold for %d AO", auctionId, highestBid.Amount)
         })
         Send({
             Target = highestBid.Bidder,
@@ -573,14 +574,14 @@ function masterCancel(auctionId)
     -- If there was a bid, refund it
     if highestBid then
         Send({
-            Target = wAR,
+            Target = AO,
             Action = "Transfer",
             Recipient = highestBid.Bidder,
             Quantity = tostring(highestBid.Amount),
             ["X-Data"] = "Refund for cancelled auction: " .. auctionId
         })
 
-        print(string.format("Bid refunded to bidder %s with amount %s wAR", 
+        print(string.format("Bid refunded to bidder %s with amount %s AO", 
             highestBid.Bidder,
             highestBid.Amount
         ))
